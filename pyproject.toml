@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "audio-eval"
+version = "0.1.0"
+description = "Composable evaluation for generated and reconstructed audio"
+readme = "README.md"
+requires-python = ">=3.10,<3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "audio-eval contributors" }]
+dependencies = [
+    "numpy>=1.23",
+    "scipy>=1.9",
+    "soundfile>=0.12",
+]
+
+[project.optional-dependencies]
+paired = [
+    "librosa>=0.10",
+    "pesq>=0.0.4",
+    "pystoi>=0.4",
+    "torch==2.5.1",
+]
+distribution = [
+    "audiobox-aesthetics==0.0.4",
+    "openl3>=0.4.2",
+    "panns-inference>=0.1",
+    "soxr>=0.3.7",
+    "torch==2.5.1",
+]
+passt = [
+    "passt @ git+https://github.com/hkchengrex/passt_hear21.git",
+    "torch==2.5.1",
+]
+speech = [
+    "funasr",
+    "jiwer>=3.0",
+    "nemo_toolkit[asr]",
+    "openai-whisper",
+    "s3prl",
+    "torch==2.5.1",
+    "torchaudio==2.5.1",
+    "zhconv",
+]
+video = [
+    "av_bench @ git+https://github.com/hkchengrex/av-benchmark.git",
+    "torch==2.5.1",
+    "torchvision==0.20.1",
+]
+test = ["pytest>=7.4"]
+
+[project.scripts]
+audio-eval = "audio_eval.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["audio_eval*"]
+
+[tool.setuptools.package-data]
+audio_eval = ["assets/openl3_fd/*.md", "assets/openl3_fd/*.npz", "assets/passt_kl/*.md", "assets/passt_kl/*.pkl", "presets/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
