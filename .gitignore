@@ -19,3 +19,9 @@ reference_cache/
 tests/
 
 wget-log
+
+/*.csv
+
+tmp_t2a/
+
+.codex

@@ -7,7 +7,6 @@ from pathlib import Path
 import typing as tp
 
 from .audio import load_audio
-from audio_eval.cache import ensure_audio_feature_cache
 from audio_eval.common import MetricInput
 from audio_eval.utils import load_manifest, write_result
 
@@ -102,38 +101,17 @@ def eval_generation(
         if reference_cache is not None
         else None
     )
-    feature_metrics = {"fd", "kl", "inception_score"}
-    if generated_cache_path is not None and feature_metrics & set(selected_metrics):
-        ensure_audio_feature_cache(
-            generated_audio,
-            output_dir=generated_cache_path,
-        )
-    if (
-        reference_cache_path is not None
-        and explicit_reference is None
-        and feature_metrics & set(selected_metrics)
-    ):
-        if manifest_reference is not None:
-            ensure_audio_feature_cache(
-                tp.cast(tp.Mapping[str, tp.Any], manifest_reference),
-                output_dir=reference_cache_path,
-            )
-        elif not reference_cache_path.is_dir():
-            reference_cache_path.mkdir(parents=True, exist_ok=True)
-
     if explicit_reference is not None:
         metric_reference: tp.Optional[MetricInput] = explicit_reference
-    elif reference_cache_path is not None:
-        metric_reference = reference_cache_path
-    else:
+    elif manifest_reference is not None:
         metric_reference = manifest_reference
+    else:
+        metric_reference = reference_cache_path
 
     metric_results: tp.Dict[str, object] = {}
     for metric, option in zip(selected_metrics, metric_options):
         options: tp.Dict[str, object] = {}
-        metric_generated: MetricInput = (
-            generated_cache_path if generated_cache_path is not None else generated_audio
-        )
+        metric_generated: MetricInput = generated_audio
         metric_reference_for_metric = metric_reference
         if metric == "fd":
             from .metrics.fd import compute_fd, get_fd_options
@@ -154,18 +132,17 @@ def eval_generation(
 
         if cache_dir is not None and metric in {"fd", "kl", "inception_score", "clap"}:
             options["cache_dir"] = cache_dir
+        if metric in {"fd", "kl", "inception_score"} and generated_cache_path is not None:
+            options["generated_cache_dir"] = generated_cache_path
+        if metric in {"fd", "kl"} and reference_cache_path is not None:
+            options["reference_cache_dir"] = reference_cache_path
         if metric == "fd" and option == "openl3":
-            metric_generated = generated_audio
             metric_reference_for_metric = (
                 explicit_reference if explicit_reference is not None else manifest_reference
             )
             options["cache_dir"] = generated_cache_path or cache_dir
-            if generated_cache_path is not None:
-                options["generated_cache_dir"] = generated_cache_path
-            if reference_cache_path is not None:
-                options["reference_cache_dir"] = reference_cache_path
         if metric in _DISTRIBUTION_METRICS:
-            if metric_reference_for_metric is None:
+            if metric_reference_for_metric is None and reference_cache_path is None:
                 raise ValueError(
                     f"{metric} requires --reference or ref_path for every JSONL record"
                 )

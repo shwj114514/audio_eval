@@ -32,6 +32,7 @@ distribution = [
 ]
 passt = [
     "passt @ git+https://github.com/hkchengrex/passt_hear21.git",
+    "soxr>=0.3.7",
     "torch==2.5.1",
 ]
 speech = [

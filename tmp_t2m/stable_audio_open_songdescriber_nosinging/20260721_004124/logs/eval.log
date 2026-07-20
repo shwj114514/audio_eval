@@ -1,0 +1,20 @@
+run_id=20260721_004124
+started_at=2026-07-21T00:41:38+08:00
+repo_root=/home/jiahelei/github/audio_eval
+manifest=/home/jiahelei/github/audio_eval/tmp/stable_audio_open/ttm_songdescriber_nosinging/ttm_with_reference.jsonl
+generated_cache=/home/jiahelei/github/audio_eval/tmp_t2m/stable_audio_open_songdescriber_nosinging/20260721_004124/generated_cache
+reference_cache=/home/jiahelei/github/audio_eval/tmp_t2m/stable_audio_open_songdescriber_nosinging/20260721_004124/reference_cache
+results_dir=/home/jiahelei/github/audio_eval/tmp_t2m/stable_audio_open_songdescriber_nosinging/20260721_004124/results
+cuda_visible_devices=0
+command=/home/jiahelei/miniconda3/envs/eval/bin/python -m audio_eval ttm /home/jiahelei/github/audio_eval/tmp/stable_audio_open/ttm_songdescriber_nosinging/ttm_with_reference.jsonl --metrics fd\,kl\,inception_score\,clap\,audiobox\,utmos --metric-options openl3\,passt\,panns\,\,\, --generated-cache /home/jiahelei/github/audio_eval/tmp_t2m/stable_audio_open_songdescriber_nosinging/20260721_004124/generated_cache --reference-cache /home/jiahelei/github/audio_eval/tmp_t2m/stable_audio_open_songdescriber_nosinging/20260721_004124/reference_cache --results-dir /home/jiahelei/github/audio_eval/tmp_t2m/stable_audio_open_songdescriber_nosinging/20260721_004124/results --name stable_audio_open_songdescriber_nosinging_current 
+2026-07-21 00:52:47.238446: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-07-21 00:52:47.287733: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX512_FP16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-07-21 00:52:48.337226: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+/home/jiahelei/miniconda3/envs/eval/lib/python3.10/site-packages/resampy/filters.py:32: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+2026-07-21 00:53:12.139882: I external/local_xla/xla/service/service.cc:163] XLA service 0x722c6c9b71e0 initialized for platform Host (this does not guarantee that XLA will be used). Devices:
+2026-07-21 00:53:12.139916: I external/local_xla/xla/service/service.cc:171]   StreamExecutor device (0): Host, Default Version
+2026-07-21 00:53:12.167889: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:269] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1784566392.404068  601762 device_compiler.h:196] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.

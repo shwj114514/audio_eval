@@ -1,29 +1,115 @@
-"""Paired KL divergence with selectable PANNs or PaSST logits."""
+"""Paired KL divergence over the 527 AudioSet classes.
 
+The feature extractors use 10-second windows with a 5-second hop.  For example,
+an exactly 20-second generated audio produces three overlapping windows::
+
+    G1 = [0 s, 10 s)
+    G2 = [5 s, 15 s)
+    G3 = [10 s, 20 s)
+
+The examples below use only three classes to keep the arithmetic readable; the
+real PANNs and PaSST outputs contain 527 values per window.
+
+KL-PANNs
+--------
+PANNs returns an already-sigmoid-activated score vector for each window::
+
+    scores_G1 = [0.8, 0.2, 0.1]
+    scores_G2 = [0.6, 0.4, 0.2]
+    scores_G3 = [0.7, 0.3, 0.3]
+
+Average corresponding classes across G1, G2, and G3::
+
+    mean_scores_G = [(0.8 + 0.6 + 0.7) / 3,
+                     (0.2 + 0.4 + 0.3) / 3,
+                     (0.1 + 0.2 + 0.3) / 3]
+                  = [0.7, 0.3, 0.2]
+
+Sigmoid scores are independent multi-label scores and do not have to sum to
+one.  Clamp them to at least ``1e-12`` and divide by their class sum before KL::
+
+    P_G = mean_scores_G / sum(mean_scores_G)
+        = [0.7, 0.3, 0.2] / 1.2
+        = [0.583333, 0.250000, 0.166667]
+
+Process reference windows R1, R2, and R3 in exactly the same way to obtain P_R,
+then calculate one KL value for the complete generated/reference audio pair::
+
+    KL_PANNs_audio = KL(P_G || P_R)
+
+KL-PaSST (Stable Audio ``collect-mean``)
+-----------------------------------------
+PaSST returns a raw, pre-softmax logit vector for each window::
+
+    logits_G1 = [2.0, 0.5, -1.0]
+    logits_G2 = [1.5, 0.7, -0.5]
+    logits_G3 = [2.5, 0.3, -0.8]
+
+Average corresponding class logits across G1, G2, and G3 first::
+
+    mean_logits_G = [(2.0 + 1.5 + 2.5) / 3,
+                     (0.5 + 0.7 + 0.3) / 3,
+                     (-1.0 - 0.5 - 0.8) / 3]
+                  = [2.0, 0.5, -0.766667]
+
+Apply softmax once to the averaged logit vector::
+
+    P_G = softmax(mean_logits_G) = [0.777604, 0.173507, 0.048889]
+
+Process reference windows R1, R2, and R3 in exactly the same way to obtain P_R,
+then calculate one KL value for the complete generated/reference audio pair::
+
+    KL_PaSST_audio = KL(P_G || P_R)
+
+AudioCraft/MusicGen uses a different PaSST aggregation protocol: it applies
+softmax and calculates KL separately for every aligned segment pair::
+
+    p_G1 = softmax(logits_G1)   p_R1 = softmax(logits_R1)
+    p_G2 = softmax(logits_G2)   p_R2 = softmax(logits_R2)
+    p_G3 = softmax(logits_G3)   p_R3 = softmax(logits_R3)
+
+    KL_segments = (KL(p_G1 || p_R1) + KL(p_G2 || p_R2) + KL(p_G3 || p_R3)) / 3
+
+AudioCraft actually averages over all segment pairs in the dataset, so longer
+audio can have more weight.  This file first produces one distribution and one
+KL value per source audio, then averages the per-audio KL values, giving every
+matched source audio equal weight.
+
+For both PANNs and PaSST, ``KL(P || Q)`` is computed as::
+
+    KL(P || Q) = sum_c P(c) * (log(P(c)) - log(Q(c)))
+
+``direction`` selects which distribution is ``P``.  The default is
+``KL(generated || reference)``.
+
+PaSST reference implementation:
+https://github.com/Stability-AI/stable-audio-metrics/blob/main/src/passt_kld.py
+
+Stable Audio Open SongDescriber-nosinging KL-PaSST:
+* Reported result in the paper: 0.55
+* Reproduced result: 0.5510393264
+"""
 from __future__ import annotations
 
-import contextlib
-from functools import partial
-import os
 import pickle
 from pathlib import Path
 import typing as tp
+
 import numpy as np
 import torch
-import torch.nn.functional as F
 
-from audio_eval.audio import collection_fingerprint, collection_items, load_audio
-from audio_eval.cache import cache_file, is_feature_map, load_feature_map, pair_feature_maps
 from audio_eval.common import MetricInput
-from audio_eval.metrics.panns import get_panns_features, load_panns_features
+from audio_eval.features.panns import get_panns_features
+from audio_eval.features.passt import get_passt_features
+
 
 _PASST_ASSETS = Path(__file__).resolve().parents[1] / "assets" / "passt_kl"
 
 KL_OPTIONS: tp.Dict[str, tp.Dict[str, object]] = {
-    "panns": {"version": "panns"},  # PANNs CNN14   KL(P_generated || P_reference)
-    "passt": {"version": "passt"},  # PaSST
+    "panns": {"version": "panns"},
+    "passt": {"version": "passt"},
     "panns_ref_to_gen": {"version": "panns", "direction": "reference_to_generated"},
-    "passt_ref_to_gen": {"version": "passt", "direction": "reference_to_generated"},    # KL(P_reference || P_generated)
+    "passt_ref_to_gen": {"version": "passt", "direction": "reference_to_generated"},
 }
 
 KL_REFERENCES: tp.Dict[str, tp.Dict[str, Path]] = {
@@ -36,98 +122,6 @@ KL_REFERENCES: tp.Dict[str, tp.Dict[str, Path]] = {
     }
 }
 
-_PASST_MODELS: tp.Dict[str, torch.nn.Module] = {}
-
-
-def _load_passt_probabilities(path: str | Path) -> tp.Dict[str, np.ndarray]:
-    cache_path = Path(path).expanduser()
-    if cache_path.suffix.lower() == ".pkl":
-        with cache_path.open("rb") as file:
-            values = pickle.load(file)
-        return {
-            str(key): value.detach().cpu().numpy() if isinstance(value, torch.Tensor) else np.asarray(value)
-            for key, value in values.items()
-        }
-    with np.load(cache_path, allow_pickle=False) as loaded:
-        return {
-            str(key): value
-            for key, value in zip(loaded["keys"].astype(str), loaded["probabilities"], strict=True)
-        }
-
-
-def _get_passt_probabilities(
-    audio: MetricInput,
-    *,
-    sample_rate: int | None,
-    cache_dir: str | Path | None,
-    device: str | None,
-    refresh_cache: bool,
-) -> tp.Tuple[tp.Dict[str, np.ndarray], Path]:
-    target_sample_rate = 32000
-    fingerprint = collection_fingerprint(audio, sample_rate=sample_rate)
-    output_path = cache_file(
-        "features",
-        fingerprint,
-        backend="passt_probabilities_mean_10s_5s",
-        cache_dir=cache_dir,
-    )
-    if output_path.is_file() and not refresh_cache:
-        return _load_passt_probabilities(output_path), output_path
-
-    try:
-        import soxr
-        from hear21passt.base import get_basic_model
-    except ImportError as error:
-        raise ImportError("PaSST KL requires hear21passt and soxr") from error
-
-    target_device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-    if target_device not in _PASST_MODELS:
-        with open(os.devnull, "w") as output, contextlib.redirect_stdout(output):
-            model = get_basic_model(mode="logits")
-        model.eval()
-        _PASST_MODELS[target_device] = model.to(target_device)
-    model = _PASST_MODELS[target_device]
-
-    probabilities: tp.Dict[str, np.ndarray] = {}
-    window_size = 10 * target_sample_rate
-    step_size = 5 * target_sample_rate
-    for key, source in collection_items(audio):
-        waveform, source_sample_rate = load_audio(source, sample_rate=sample_rate)
-        peak = float(np.max(np.abs(waveform)))
-        if peak > 0:
-            waveform = waveform * (10.0 ** (-1.0 / 20.0) / peak)
-        if source_sample_rate != target_sample_rate:
-            waveform = soxr.resample(waveform, source_sample_rate, target_sample_rate)
-
-        window_logits: tp.List[torch.Tensor] = []
-        for start in range(0, max(step_size, len(waveform) - step_size), step_size):
-            window = waveform[start : start + window_size]
-            if len(window) < window_size:
-                if len(window) <= int(window_size * 0.15):
-                    continue
-                padded = np.zeros(window_size, dtype=np.float32)
-                padded[: len(window)] = window
-                window = padded
-            audio_tensor = torch.from_numpy(np.asarray(window, dtype=np.float32)).unsqueeze(0).to(target_device)
-            old_stft = torch.stft
-            try:
-                torch.stft = partial(torch.stft, return_complex=False)
-                with open(os.devnull, "w") as output, contextlib.redirect_stdout(output):
-                    with torch.no_grad():
-                        window_logits.append(torch.squeeze(model(audio_tensor)))
-            finally:
-                torch.stft = old_stft
-        if not window_logits:
-            raise ValueError(f"PaSST found no valid 10-second window for {key}")
-        probabilities[key] = F.softmax(torch.stack(window_logits).mean(dim=0), dim=0).cpu().numpy()
-
-    np.savez_compressed(
-        output_path,
-        keys=np.asarray(list(probabilities)),
-        probabilities=np.stack(list(probabilities.values())),
-    )
-    return probabilities, output_path
-
 
 def get_kl_options(option: str) -> tp.Dict[str, object]:
     if not option:
@@ -139,43 +133,97 @@ def get_kl_options(option: str) -> tp.Dict[str, object]:
         raise ValueError(f"Unknown KL option {option!r}. Available: {available}") from error
 
 
+def _load_probability_map(path: str | Path) -> tp.Dict[str, np.ndarray]:
+    cache_path = Path(path).expanduser()
+    if cache_path.suffix.lower() != ".pkl":
+        raise ValueError(
+            f"KL probability reference must be a bundled .pkl file, got {cache_path}. "
+            "Use panns.npz or passt.npz for extracted feature caches."
+        )
+    with cache_path.open("rb") as file:
+        values = pickle.load(file)
+    if not isinstance(values, tp.Mapping):
+        raise ValueError(f"KL probability cache must contain a mapping: {cache_path}")
+    return {
+        str(key): value.detach().cpu().numpy() if isinstance(value, torch.Tensor) else np.asarray(value)
+        for key, value in values.items()
+    }
+
+
+def _mean_by_clip(
+    clip_keys: tp.Sequence[str],
+    values: np.ndarray,
+) -> tp.Dict[str, np.ndarray]:
+    grouped: tp.Dict[str, tp.List[np.ndarray]] = {}
+    for key, value in zip(clip_keys, values, strict=True):
+        grouped.setdefault(str(key), []).append(value)
+    return {key: np.stack(rows).mean(axis=0) for key, rows in grouped.items()}
+
+
+def _softmax(values: np.ndarray) -> np.ndarray:
+    shifted = values.astype(np.float64) - np.max(values, axis=-1, keepdims=True)
+    exponentials = np.exp(shifted)
+    return exponentials / exponentials.sum(axis=-1, keepdims=True)
+
 def _normalized(probabilities: np.ndarray) -> np.ndarray:
     probabilities = np.maximum(probabilities.astype(np.float64), 1e-12)
     return probabilities / probabilities.sum(axis=-1, keepdims=True)
-
 
 def compute_kl(
     generated: MetricInput,
     reference: MetricInput | None = None,
     *,
-    generated_sample_rate: int | None = None,
+    # Unnecessary for audio file paths and for``(audio, sample_rate)`` tuples
+    generated_sample_rate: int | None = None, 
     reference_sample_rate: int | None = None,
+    
     backend: str = "panns_cnn14",
-    version: str = "panns",
-    direction: str = "generated_to_reference",
-    cache_dir: str | Path | None = None,
-    batch_size: int = 8,
+    version: str = "panns", #     # "panns"  or "passt"
+    direction: str = "generated_to_reference", #  KL direction
+    cache_dir: str | Path | None = None,  # Root for automatically fingerprinted feature caches
+    generated_cache_dir: str | Path | None = None,
+    reference_cache_dir: str | Path | None = None,
+    batch_size: int = 8, # Number of 10-second windows processed in each model batch
     device: str | None = None,
-    checkpoint_path: str | Path | None = None,
+    checkpoint_path: str | Path | None = None,  # Optional PANNs Cnn14 checkpoint
+    # Require generated and reference sample-ID sets to match exactly. If false, compute the metric only over their intersection.
     strict: bool = True,
+    # Re-extract features from the supplied raw audio even if the target cache already exists.
     refresh_cache: bool = False,
-) -> dict:
+) -> tp.Dict[str, tp.Any]:
+    """
+        Compute paired KL divergence from AudioSet classifier outputs.
+        Each generated audio clip
+            → split into 10-second windows with a 5-second hop
+            → extract PaSST logits for each window
+            → average the window-level logits
+            → apply softmax to obtain a 527-dimensional probability vector
+            → compute (KL(\text{gen} \parallel \text{ref})) against the probability vector of the corresponding ground-truth audio (if direction == "generated_to_reference")
+        preprocess: mono → resample 32 kHz → -1 dB peak normalize → 10s clip
+    """
+
     if direction not in {"generated_to_reference", "reference_to_generated"}:
         raise ValueError("direction must be generated_to_reference or reference_to_generated")
     if version not in {"panns", "passt"}:
         raise ValueError("version must be panns or passt")
 
-    reference_cache: Path | None = None
+    # Resolve a path/name before feature extraction. Bundled probability maps
+    # reproduce published PaSST reference distributions without raw audio.
+    probability_reference: Path | None = None
     if isinstance(reference, (str, Path)):
         reference_path = Path(reference).expanduser()
         if reference_path.exists():
-            if reference_path.is_file() and reference_path.suffix.lower() in {".npz", ".pkl", ".pth"}:
-                reference_cache = reference_path
+            if reference_path.is_file() and reference_path.suffix.lower() == ".pkl":
+                probability_reference = reference_path
                 reference = None
+            elif reference_path.is_file() and reference_path.suffix.lower() == ".pth":
+                raise ValueError(
+                    "Legacy .pth PANNs/PaSST caches use a different feature protocol and are not supported"
+                )
             else:
                 reference = reference_path
         elif str(reference) in KL_REFERENCES.get(version, {}):
-            reference_cache = KL_REFERENCES[version][str(reference)]
+            probability_reference = KL_REFERENCES[version][str(reference)]
             reference = None
         else:
             available = ", ".join(sorted(KL_REFERENCES.get(version, {})))
@@ -183,129 +231,94 @@ def compute_kl(
                 f"Unknown KL reference {reference!r} for {version}. Available bundled references: {available}"
             )
 
-    filename = "pann_features.pth" if version == "panns" else "passt_logits.pth"
-    layer = "logits" if version == "panns" else None
-    generated_is_av_cache = generated_sample_rate is None and is_feature_map(
-        generated, filename=filename, layer=layer
-    )
-    if version == "passt" and not generated_is_av_cache:
-        generated_probabilities, generated_cache = _get_passt_probabilities(
+    if version == "panns":
+        # PANNs emits sigmoid probabilities for every window. 
+        # Average those probabilities to obtain one classifier vector per source audio.
+        generated_features = get_panns_features(
             generated,
             sample_rate=generated_sample_rate,
-            cache_dir=cache_dir,
-            device=device,
-            refresh_cache=refresh_cache,
-        )
-        if reference_cache is not None:
-            reference_probabilities = _load_passt_probabilities(reference_cache)
-        else:
-            if reference is None:
-                raise ValueError("KL requires reference audio or a reference cache")
-            reference_probabilities, reference_cache = _get_passt_probabilities(
-                reference,
-                sample_rate=reference_sample_rate,
-                cache_dir=cache_dir,
-                device=device,
-                refresh_cache=refresh_cache,
-            )
-        missing_reference = sorted(set(generated_probabilities) - set(reference_probabilities))
-        if strict and missing_reference:
-            raise ValueError(f"KL reference cache is missing generated ids: {missing_reference[:5]}")
-        keys = sorted(set(generated_probabilities) & set(reference_probabilities))
-        if not keys:
-            raise ValueError("No matched generated/reference samples for KL")
-        generated_array = np.stack([generated_probabilities[key] for key in keys])
-        reference_array = np.stack([reference_probabilities[key] for key in keys])
-        if direction == "generated_to_reference":
-            left, right = generated_array, reference_array
-        else:
-            left, right = reference_array, generated_array
-        left = left.astype(np.float64)
-        right = right.astype(np.float64)
-        per_sample = np.sum(left * (np.log(left) - np.log(right + 1e-6)), axis=-1)
-        return {
-            "kl": float(per_sample.mean()),
-            "version": version,
-            "direction": direction,
-            "num_samples": len(keys),
-            "details": [
-                {"id": key, "kl": float(score)} for key, score in zip(keys, per_sample, strict=True)
-            ],
-            "generated_cache": str(generated_cache),
-            "reference_cache": str(reference_cache),
-        }
-
-    if generated_is_av_cache:
-        if reference is None and reference_cache is None:
-            raise ValueError("KL requires reference features")
-        generated_map = load_feature_map(generated, filename=filename, layer=layer)
-        reference_map = load_feature_map(
-            reference_cache if reference_cache is not None else reference,
-            filename=filename,
-            layer=layer,
-        )
-        keys, reference_logits, generated_logits, unpaired = pair_feature_maps(
-            reference_map, generated_map
-        )
-        if direction == "reference_to_generated":
-            target_logits, predicted_logits = generated_logits, reference_logits
-        else:
-            target_logits, predicted_logits = reference_logits, generated_logits
-        per_class = F.kl_div(
-            F.log_softmax(target_logits.double(), dim=1),
-            F.log_softmax(predicted_logits.double(), dim=1),
-            reduction="none",
-            log_target=True,
-        )
-        per_sample = per_class.sum(dim=1)
-        return {
-            "kl": float(per_sample.mean()),
-            "version": version,
-            "direction": direction,
-            "num_samples": len(keys),
-            "unpaired": unpaired,
-            "details": [
-                {"id": key, "kl": float(score)}
-                for key, score in zip(keys, per_sample, strict=True)
-            ],
-        }
-
-    generated_features = get_panns_features(
-        generated,
-        sample_rate=generated_sample_rate,
-        backend=backend,
-        cache_dir=cache_dir,
-        batch_size=batch_size,
-        device=device,
-        checkpoint_path=checkpoint_path,
-        refresh_cache=refresh_cache,
-    )
-    if reference_cache is not None:
-        reference_data = load_panns_features(reference_cache)
-    else:
-        if reference is None:
-            raise ValueError("KL requires reference audio or a reference cache")
-        reference_data = get_panns_features(
-            reference,
-            sample_rate=reference_sample_rate,
             backend=backend,
             cache_dir=cache_dir,
+            output_dir=generated_cache_dir,
             batch_size=batch_size,
             device=device,
             checkpoint_path=checkpoint_path,
             refresh_cache=refresh_cache,
         )
+        reference_source = reference
+        if reference_source is None and reference_cache_dir is not None:
+            reference_source = Path(reference_cache_dir).expanduser()
+        if reference_source is None:
+            raise ValueError("KL-PANNs requires reference audio or a panns.npz feature cache")
+        reference_features = get_panns_features(
+            reference_source,
+            sample_rate=reference_sample_rate,
+            backend=backend,
+            cache_dir=cache_dir,
+            output_dir=reference_cache_dir,
+            batch_size=batch_size,
+            device=device,
+            checkpoint_path=checkpoint_path,
+            refresh_cache=refresh_cache,
+        )
+        generated_map = _mean_by_clip(
+            generated_features["clip_keys"], generated_features["probabilities"]
+        )
+        reference_map = _mean_by_clip(
+            reference_features["clip_keys"], reference_features["probabilities"]
+        )
+        generated_cache = generated_features["cache_path"]
+        reference_cache = reference_features["cache_path"]
+        feature_backend = backend
+        num_windows_generated = len(generated_features["clip_keys"])
+        num_windows_reference = len(reference_features["clip_keys"])
+    else:
+        # PaSST emits logits (before softmax). 
+        # Average logits across windows first, matching the reference protocol, and apply softmax once per source audio.
+        generated_features = get_passt_features(
+            generated,
+            sample_rate=generated_sample_rate,
+            cache_dir=cache_dir,
+            output_dir=generated_cache_dir,
+            batch_size=batch_size,
+            device=device,
+            refresh_cache=refresh_cache,
+        )
+        generated_logits = _mean_by_clip(
+            generated_features["clip_keys"], generated_features["logits"]
+        )
+        generated_map = {key: _softmax(value) for key, value in generated_logits.items()}
+        generated_cache = generated_features["cache_path"]
+        num_windows_generated = len(generated_features["clip_keys"])
+        if probability_reference is not None:
+            reference_map = _load_probability_map(probability_reference)
+            reference_cache = probability_reference
+            num_windows_reference = None
+        else:
+            reference_source = reference
+            if reference_source is None and reference_cache_dir is not None:
+                reference_source = Path(reference_cache_dir).expanduser()
+            if reference_source is None:
+                raise ValueError("KL-PaSST requires reference audio, passt.npz, or a bundled reference")
+            reference_features = get_passt_features(
+                reference_source,
+                sample_rate=reference_sample_rate,
+                cache_dir=cache_dir,
+                output_dir=reference_cache_dir,
+                batch_size=batch_size,
+                device=device,
+                refresh_cache=refresh_cache,
+            )
+            reference_logits = _mean_by_clip(
+                reference_features["clip_keys"], reference_features["logits"]
+            )
+            reference_map = {key: _softmax(value) for key, value in reference_logits.items()}
+            reference_cache = reference_features["cache_path"]
+            num_windows_reference = len(reference_features["clip_keys"])
+        feature_backend = "passt_s_swa_p16_128_ap476"
 
-    generated_map = {
-        key: probability for key, probability in zip(
-            generated_features["keys"], generated_features["probabilities"], strict=True
-        )
-    }
-    reference_map = {
-        key: probability for key, probability in zip(
-            reference_data["keys"], reference_data["probabilities"], strict=True
-        )
-    }
+    # KL is paired: only generated/reference records with the same sample ID
+    # can be compared. In non-strict mode unmatched records are simply omitted.
     generated_keys = set(generated_map)
     reference_keys = set(reference_map)
     if strict and generated_keys != reference_keys:
@@ -318,22 +331,29 @@ def compute_kl(
     if not keys:
         raise ValueError("No matched generated/reference samples for KL")
 
+    # PANNs sigmoid scores do not naturally sum to one, and external referencemaps may contain small numerical errors. 
+    # Convert both sides into valid, strictly positive categorical distributions before taking logarithms.
     generated_probabilities = _normalized(np.stack([generated_map[key] for key in keys]))
     reference_probabilities = _normalized(np.stack([reference_map[key] for key in keys]))
     if direction == "generated_to_reference":
         left, right = generated_probabilities, reference_probabilities
     else:
         left, right = reference_probabilities, generated_probabilities
+
+    # KL(P || Q) = sum_c P(c) * (log P(c) - log Q(c))
+    # evaluated over the 527 AudioSet classes for every paired sample.
     per_sample = np.sum(left * (np.log(left) - np.log(right)), axis=-1)
     return {
         "kl": float(per_sample.mean()),
         "version": version,
-        "backend": backend,
+        "backend": feature_backend,
         "direction": direction,
         "num_samples": len(keys),
+        "num_windows_generated": num_windows_generated,
+        "num_windows_reference": num_windows_reference,
         "details": [
             {"id": key, "kl": float(score)} for key, score in zip(keys, per_sample, strict=True)
         ],
-        "generated_cache": str(generated_features["cache_path"]),
-        "reference_cache": str(reference_data["cache_path"]),
+        "generated_cache": str(generated_cache),
+        "reference_cache": str(reference_cache),
     }

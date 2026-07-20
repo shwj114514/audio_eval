@@ -110,9 +110,9 @@ audio-eval ttm manifests/songdescriber.jsonl \
   --reference-cache manifests/songdescriber_reference_cache
 ```
 
-`--cache-dir` remains supported as the legacy shared cache root. OpenL3
-embeddings are stored under the generated/reference cache roots separately;
-PANNs and PaSST use their corresponding `.pth` feature caches.
+`--cache-dir` remains supported as the legacy shared cache root. OpenL3,
+PANNs, PaSST, and VGGish features are stored in their corresponding `.npz`
+feature caches.
 
 ### TTS
 
@@ -282,12 +282,21 @@ Set `AUDIO_EVAL_WAVLM_CHECKPOINT` to the official Seed-TTS/UniSpeech
 Expensive feature extraction is part of metric computation; users do not call
 a separate public extraction step.
 
-- PANNs runs once per audio collection and caches embeddings and class
-  probabilities in `pann_features.pth`; PaSST and VGGish use their own `.pth`
-  files in the same explicit cache directory.
-- PANNs versions of `compute_fd`, `compute_kl`, and
-  `compute_inception_score` reuse that cache; PaSST versions use the PaSST
-  feature/logit files.
+- `audio_eval/features/openl3.py`, `panns.py`, `passt.py`, and `vggish.py` are
+  the only implementations that run those feature models. Metric modules never
+  contain a second model-forward path.
+- PANNs caches 527-dimensional classifier probabilities and 2048-dimensional
+  pre-classification embeddings in `panns.npz`. PaSST caches 527-dimensional
+  classifier logits and 768-dimensional pre-classification embeddings in
+  `passt.npz`. VGGish caches its 128-dimensional embeddings in `vggish.npz`.
+  OpenL3 caches its window embeddings in `openl3.npz`.
+- Feature caches preserve window-level outputs and their source-audio keys.
+  KL and Inception Score consume classification outputs; FD consumes only
+  pre-classification embeddings. Metric-specific aggregation happens after
+  loading the shared cache.
+- Passing or omitting an explicit cache directory does not select a different
+  feature extractor. Existing legacy `.pth` PANNs/PaSST/VGGish bundles are not
+  silently mixed with the current protocol.
 - `compute_clap` caches audio embeddings.
 - `compute_fd` and `compute_kl` accept a reference-audio path, a precomputed
   reference cache path, or a bundled reference name as their second argument.

@@ -9,7 +9,11 @@ import tempfile
 import typing as tp
 
 from audio_eval.audio import AUDIO_EXTENSIONS
-from audio_eval.cache import ensure_audio_feature_cache, ensure_video_feature_cache
+from audio_eval.cache import (
+    IMAGEBIND_OVERLAP_CACHE_MARKER,
+    ensure_audio_feature_cache,
+    ensure_video_feature_cache,
+)
 from audio_eval.utils import load_manifest, write_result
 
 
@@ -43,6 +47,24 @@ def eval_v2a(
     if unknown:
         raise ValueError(f"Unsupported V2A metrics: {unknown}")
 
+    feature_versions: tp.List[str] = []
+    for metric, option in zip(selected_metrics, metric_options):
+        if metric == "fd":
+            from .metrics.fd import get_fd_options
+            version = tp.cast(str, get_fd_options(option).get("version", "panns"))
+        elif metric == "kl":
+            from .metrics.kl import get_kl_options
+            version = tp.cast(str, get_kl_options(option).get("version", "panns"))
+        elif metric == "inception_score":
+            from .metrics.inception_score import get_inception_score_options
+            version = tp.cast(
+                str, get_inception_score_options(option).get("version", "panns")
+            )
+        else:
+            continue
+        if version != "openl3" and version not in feature_versions:
+            feature_versions.append(version)
+
     manifest_path = Path(manifest).expanduser().resolve()
     records = load_manifest(manifest_path)
     generated_cache_path = (
@@ -72,7 +94,6 @@ def eval_v2a(
         for key, record in records.items()
         if record["ref_path"] is not None
     }
-
     with tempfile.TemporaryDirectory(prefix="audio_eval_v2a_") as temp_dir:
         temp_path = Path(temp_dir)
         generated_dir = temp_path / "generated"
@@ -83,16 +104,13 @@ def eval_v2a(
         ensure_audio_feature_cache(
             generated_dir,
             output_dir=generated_cache_path,
-            include_video_metrics=needs_video_features,
+            feature_versions=feature_versions,
+            include_video_metrics=False,
         )
 
         if needs_manifest_reference_audio:
-            required_audio_cache = (
-                "pann_features.pth",
-                "passt_features_embed.pth",
-                "passt_logits.pth",
-                "vggish_features.pth",
-            )
+            filenames = {"panns": "panns.npz", "passt": "passt.npz", "vggish": "vggish.npz"}
+            required_audio_cache = tuple(filenames[version] for version in feature_versions)
             if not all((reference_cache_path / name).is_file() for name in required_audio_cache):
                 missing = sorted(set(records) - set(reference_records))
                 if missing:
@@ -120,6 +138,7 @@ def eval_v2a(
                 ensure_audio_feature_cache(
                     reference_audio_dir,
                     output_dir=reference_cache_path,
+                    feature_versions=feature_versions,
                     include_video_metrics=False,
                 )
 
@@ -127,7 +146,11 @@ def eval_v2a(
             missing = sorted(set(records) - set(reference_records))
             video_cache_complete = all(
                 (reference_cache_path / name).is_file()
-                for name in ("imagebind_video.pth", "synchformer_video.pth")
+                for name in (
+                    "imagebind_video.pth",
+                    "synchformer_video.pth",
+                    IMAGEBIND_OVERLAP_CACHE_MARKER,
+                )
             )
             if missing and not video_cache_complete:
                 raise ValueError(
@@ -144,10 +167,73 @@ def eval_v2a(
                     "ImageBind/DeSync ref_path must point to source video, not audio; "
                     f"audio ref_path found for {audio_references[:5]}"
                 )
-            ensure_video_feature_cache(
-                reference_records,
-                output_dir=reference_cache_path,
-            )
+
+            overlap_by_key: tp.Dict[str, float] = {}
+            if missing or audio_references:
+                generated_cache_complete = all(
+                    (generated_cache_path / name).is_file()
+                    for name in (
+                        "imagebind_audio.pth",
+                        "synchformer_audio.pth",
+                        IMAGEBIND_OVERLAP_CACHE_MARKER,
+                    )
+                )
+                if not (video_cache_complete and generated_cache_complete):
+                    raise ValueError(
+                        "A/V overlap extraction requires generated audio and source video "
+                        "for every manifest record"
+                    )
+            else:
+                try:
+                    import av
+                    import torchaudio
+                except ImportError as error:
+                    raise ImportError(
+                        "ImageBind/DeSync extraction requires `pip install audio-eval[video]`"
+                    ) from error
+
+                for key, record in records.items():
+                    generated_path = tp.cast(Path, record["gen_path"])
+                    video_path = reference_records[key]
+                    waveform, sample_rate = torchaudio.load(str(generated_path))
+                    waveform = waveform.float()
+                    if sample_rate != 16000:
+                        waveform = torchaudio.functional.resample(
+                            waveform,
+                            orig_freq=sample_rate,
+                            new_freq=16000,
+                        )
+                    audio_duration = waveform.shape[-1] / 16000
+                    with av.open(str(video_path)) as container:
+                        video_stream = container.streams.video[0]
+                        if video_stream.duration is not None:
+                            video_duration = float(
+                                video_stream.duration * video_stream.time_base
+                            )
+                        elif container.duration is not None:
+                            video_duration = float(container.duration / av.time_base)
+                        else:
+                            raise ValueError(
+                                f"Cannot determine video duration for {video_path}"
+                            )
+                    overlap = min(audio_duration, video_duration)
+                    if int(0.5 * overlap) < 2:
+                        raise ValueError(
+                            f"A/V overlap for {key!r} is too short: {overlap:.6f}s"
+                        )
+                    overlap_by_key[key] = overlap
+
+                ensure_audio_feature_cache(
+                    generated_dir,
+                    output_dir=generated_cache_path,
+                    include_video_metrics=True,
+                    duration_by_key=overlap_by_key,
+                )
+                ensure_video_feature_cache(
+                    reference_records,
+                    output_dir=reference_cache_path,
+                    duration_by_key=overlap_by_key,
+                )
 
     distribution_reference: tp.Union[str, Path] = (
         explicit_reference if explicit_reference is not None else reference_cache_path
@@ -159,6 +245,8 @@ def eval_v2a(
             metric_result = compute_fd(
                 generated_cache_path,
                 distribution_reference,
+                generated_cache_dir=generated_cache_path,
+                reference_cache_dir=reference_cache_path,
                 **get_fd_options(option),
             )
         elif metric == "kl":
@@ -166,6 +254,8 @@ def eval_v2a(
             metric_result = compute_kl(
                 generated_cache_path,
                 distribution_reference,
+                generated_cache_dir=generated_cache_path,
+                reference_cache_dir=reference_cache_path,
                 **get_kl_options(option),
             )
         elif metric == "inception_score":
@@ -175,6 +265,7 @@ def eval_v2a(
             )
             metric_result = compute_inception_score(
                 generated_cache_path,
+                generated_cache_dir=generated_cache_path,
                 **get_inception_score_options(option),
             )
         elif metric == "imagebind":
