@@ -22,6 +22,6 @@ wget-log
 
 /*.csv
 
-tmp_t2a/
+tmp_**/
 
 .codex
