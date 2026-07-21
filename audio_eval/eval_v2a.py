@@ -279,12 +279,11 @@ def eval_v2a(
                 raise ValueError(f"ImageBind does not define metric option {option!r}")
             metric_result = compute_imagebind(generated_cache_path, reference_cache_path)
         else:
-            from .metrics.desync import compute_desync
-            if option:
-                raise ValueError(f"DeSync does not define metric option {option!r}")
+            from .metrics.desync import compute_desync, get_desync_options
             metric_result = compute_desync(
                 generated_cache_path,
                 reference_cache_path,
+                **get_desync_options(option),
             )
 
         if option:

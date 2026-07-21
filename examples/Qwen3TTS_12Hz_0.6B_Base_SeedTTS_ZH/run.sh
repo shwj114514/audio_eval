@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Derived from: the original Qwen3TTS SeedTTS-ZH run.sh
-# Change: move the SeedTTS-ZH protocol from benchmark to per-metric options
-# Unchanged: manifest, WER/SPK-SIM metrics, result directory, and result name
+
 set -euo pipefail
 
 EXAMPLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

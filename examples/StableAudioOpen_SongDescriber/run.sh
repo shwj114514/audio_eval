@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Derived from: the original StableAudioOpen_SongDescriber/run.sh
-# Change: use OpenL3 FD and PaSST KL with the bundled SongDescriber no-singing references
-# Unchanged: manifest, metrics, result directory, and result name
+
 set -euo pipefail
 
 EXAMPLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

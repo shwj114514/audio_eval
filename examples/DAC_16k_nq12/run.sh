@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Derived from: the original DAC_16k_nq12/run.sh
-# Change: pair every reconstruction metric with an explicit empty metric option
-# Unchanged: manifest, metrics, result directory, and result name
+
 set -euo pipefail
 
 EXAMPLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

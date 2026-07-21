@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Derived from: the original UniFlowAudio_SR_VCTK/run.sh
-# Change: pair LSD with its metric-owned ssr_eval option
-# Unchanged: manifest, result directory, and result name
+
 set -euo pipefail
 
 EXAMPLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
