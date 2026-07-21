@@ -5,6 +5,232 @@ generated the audio or how inference was performed. Task evaluators receive a
 JSONL manifest; metric functions can also be called directly with paths, NumPy
 arrays, PyTorch tensors, or `(audio, sample_rate)` tuples.
 
+## `audio-eval` Benchmark Results
+
+### Text-to-Sound Effects 📃 → 🔊
+
+Best scores are shown in **bold**. ↑ means higher is better; ↓ means lower is
+better.
+
+Compared models: [Sonilo Sound Effects 1.0](https://sonilo.com/),
+[ElevenLabs SFX v2](https://elevenlabs.io/sound-effects), and
+[Mirelo v1.6](https://mirelo.ai/).
+
+#### AudioCaps
+
+<table>
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>Variant</th>
+      <th>Better</th>
+      <th>Sonilo Sound Effects 1.0</th>
+      <th>ElevenLabs SFX v2</th>
+      <th>Mirelo v1.6</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CLAP</td>
+      <td></td>
+      <td align="center">↑</td>
+      <td align="right"><strong>0.5365</strong></td>
+      <td align="right">0.5315</td>
+      <td align="right">0.2756</td>
+    </tr>
+    <tr>
+      <td rowspan="3">FD</td>
+      <td>VGGish</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>1.4787</strong></td>
+      <td align="right">1.6304</td>
+      <td align="right">3.2801</td>
+    </tr>
+    <tr>
+      <td>OpenL3</td>
+      <td align="center">↓</td>
+      <td align="right">174.5691</td>
+      <td align="right"><strong>147.5690</strong></td>
+      <td align="right">243.9284</td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↓</td>
+      <td align="right">159.8685</td>
+      <td align="right"><strong>128.7889</strong></td>
+      <td align="right">218.4857</td>
+    </tr>
+    <tr>
+      <td rowspan="2">KL</td>
+      <td>PANNs, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>0.8548</strong></td>
+      <td align="right">1.0386</td>
+      <td align="right">1.9853</td>
+    </tr>
+    <tr>
+      <td>PaSST, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>0.9030</strong></td>
+      <td align="right">1.1035</td>
+      <td align="right">2.3337</td>
+    </tr>
+    <tr>
+      <td rowspan="2">IS</td>
+      <td>PANNs</td>
+      <td align="center">↑</td>
+      <td align="right">8.1439</td>
+      <td align="right"><strong>8.8073</strong></td>
+      <td align="right">6.0735</td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>11.1876</strong></td>
+      <td align="right">9.4909</td>
+      <td align="right">9.4753</td>
+    </tr>
+    <tr>
+      <td rowspan="4">Audiobox</td>
+      <td>CE</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>3.7955</strong></td>
+      <td align="right"><strong>3.7955</strong></td>
+      <td align="right">3.5592</td>
+    </tr>
+    <tr>
+      <td>CU</td>
+      <td align="center">↑</td>
+      <td align="right">5.4048</td>
+      <td align="right">5.4048</td>
+      <td align="right"><strong>5.5914</strong></td>
+    </tr>
+    <tr>
+      <td>PC</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>3.3695</strong></td>
+      <td align="right">3.2447</td>
+      <td align="right">2.8646</td>
+    </tr>
+    <tr>
+      <td>PQ</td>
+      <td align="center">↑</td>
+      <td align="right">6.0934</td>
+      <td align="right">6.0408</td>
+      <td align="right"><strong>6.1982</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<sub>
+↑: higher is better. ↓: lower is better.
+</sub>
+
+#### Clotho
+
+<table>
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>Variant</th>
+      <th>Better</th>
+      <th>Sonilo Sound Effects 1.0</th>
+      <th>ElevenLabs SFX v2</th>
+      <th>Mirelo v1.6</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CLAP</td>
+      <td></td>
+      <td align="center">↑</td>
+      <td align="right"><strong>0.4377</strong></td>
+      <td align="right">0.3967</td>
+      <td align="right">0.3223</td>
+    </tr>
+    <tr>
+      <td rowspan="3">FD</td>
+      <td>VGGish</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>2.2883</strong></td>
+      <td align="right">2.5429</td>
+      <td align="right">5.4576</td>
+    </tr>
+    <tr>
+      <td>OpenL3</td>
+      <td align="center">↓</td>
+      <td align="right">79.4856</td>
+      <td align="right"><strong>53.2710</strong></td>
+      <td align="right">86.8386</td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↓</td>
+      <td align="right">185.1988</td>
+      <td align="right"><strong>117.8920</strong></td>
+      <td align="right">150.5898</td>
+    </tr>
+    <tr>
+      <td rowspan="2">KL</td>
+      <td>PANNs, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>1.4424</strong></td>
+      <td align="right">1.4950</td>
+      <td align="right">1.7523</td>
+    </tr>
+    <tr>
+      <td>PaSST, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>1.5098</strong></td>
+      <td align="right">1.6230</td>
+      <td align="right">1.7790</td>
+    </tr>
+    <tr>
+      <td rowspan="2">IS</td>
+      <td>PANNs</td>
+      <td align="center">↑</td>
+      <td align="right">6.9713</td>
+      <td align="right"><strong>7.3307</strong></td>
+      <td align="right">5.7209</td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>10.3071</strong></td>
+      <td align="right">9.0706</td>
+      <td align="right">7.1142</td>
+    </tr>
+    <tr>
+      <td rowspan="4">Audiobox</td>
+      <td>CE</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>3.7513</strong></td>
+      <td align="right">3.7512</td>
+      <td align="right">3.5656</td>
+    </tr>
+    <tr>
+      <td>CU</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>6.0252</strong></td>
+      <td align="right">6.0047</td>
+      <td align="right">5.5728</td>
+    </tr>
+    <tr>
+      <td>PC</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>3.0847</strong></td>
+      <td align="right">2.8204</td>
+      <td align="right">2.9840</td>
+    </tr>
+    <tr>
+      <td>PQ</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>6.4833</strong></td>
+      <td align="right">6.4831</td>
+      <td align="right">6.0801</td>
+    </tr>
+  </tbody>
+</table>
 
 ## Installation
 
@@ -372,3 +598,19 @@ Common metric options are:
 
 An empty option is used for metrics whose backend is fixed, such as CLAP,
 AudioBox, UTMOS, PESQ, and STOI.
+
+## Citation
+
+If you use `audio-eval` in your research, please cite the software:
+
+```bibtex
+@software{lei2026audioeval,
+  author  = {Lei, Jiahe and Kong, Qiuqiang},
+  title   = {audio-eval: Composable Evaluation for Generated and Reconstructed Audio},
+  year    = {2026},
+  version = {0.1.0},
+  url     = {https://github.com/shwj114514/audio_eval}
+}
+```
+
+Please cite the specific version of `audio-eval` used in your experiments.

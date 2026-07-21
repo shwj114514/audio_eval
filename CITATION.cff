@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use audio-eval in your research, please cite this software."
+title: "audio-eval: Composable Evaluation for Generated and Reconstructed Audio"
+type: software
+
+authors:
+  - family-names: "Lei"
+    given-names: "Jiahe"
+    affiliation: "The Chinese University of Hong Kong"
+
+  - family-names: "Kong"
+    given-names: "Qiuqiang"
+    affiliation: "The Chinese University of Hong Kong"
+
+version: "0.1.0"
+license: "MIT"
+
+repository-code: "https://github.com/shwj114514/audio_eval"
+url: "https://github.com/shwj114514/audio_eval"
