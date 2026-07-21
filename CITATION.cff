@@ -1,4 +1,5 @@
 cff-version: 1.2.0
+date-released: "2026-07-22"
 message: "If you use audio-eval in your research, please cite this software."
 title: "audio-eval: Composable Evaluation for Generated and Reconstructed Audio"
 type: software
