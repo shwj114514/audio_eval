@@ -1,10 +1,10 @@
 # MMAudio-S-16kHz on VGGSound
 
 This example contains one official precomputed output from
-`MMAudio-S-16kHz` on the VGGSound test set. The JSONL keeps the repository's
-three-field input schema and needs only `gen_path` for this sample. VGGSound
-video/reference features are supplied by the benchmark cache rather than by
-adding a `video_path` field.
+`MMAudio-S-16kHz` on the VGGSound test set. `v2a.jsonl` uses muxed reference
+videos for both reference audio and video features. The alternative
+`v2a_with_silence_video.jsonl` shows how to provide a separate silent source
+video through `video_path`; its `ref_path` still supplies the GT audio.
 
 Run the single-sample metrics with:
 

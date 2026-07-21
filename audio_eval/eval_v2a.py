@@ -89,10 +89,15 @@ def eval_v2a(
     needs_manifest_reference_audio = (
         explicit_reference is None and bool({"fd", "kl"} & set(selected_metrics))
     )
-    reference_records = {
+    reference_audio_records = {
         key: tp.cast(Path, record["ref_path"])
         for key, record in records.items()
         if record["ref_path"] is not None
+    }
+    video_records = {
+        key: tp.cast(Path, record["video_path"] or record["ref_path"])
+        for key, record in records.items()
+        if record["video_path"] is not None or record["ref_path"] is not None
     }
     with tempfile.TemporaryDirectory(prefix="audio_eval_v2a_") as temp_dir:
         temp_path = Path(temp_dir)
@@ -112,7 +117,7 @@ def eval_v2a(
             filenames = {"panns": "panns.npz", "passt": "passt.npz", "vggish": "vggish.npz"}
             required_audio_cache = tuple(filenames[version] for version in feature_versions)
             if not all((reference_cache_path / name).is_file() for name in required_audio_cache):
-                missing = sorted(set(records) - set(reference_records))
+                missing = sorted(set(records) - set(reference_audio_records))
                 if missing:
                     raise ValueError(
                         "FD/KL requires --reference, a complete reference cache, or ref_path "
@@ -120,7 +125,7 @@ def eval_v2a(
                     )
                 reference_audio_dir = temp_path / "reference_audio"
                 reference_audio_dir.mkdir()
-                for key, reference_path in reference_records.items():
+                for key, reference_path in reference_audio_records.items():
                     if reference_path.suffix.lower() in AUDIO_EXTENSIONS:
                         (reference_audio_dir / f"{key}{reference_path.suffix.lower()}").symlink_to(
                             reference_path
@@ -143,7 +148,7 @@ def eval_v2a(
                 )
 
         if needs_video_features:
-            missing = sorted(set(records) - set(reference_records))
+            missing = sorted(set(records) - set(video_records))
             video_cache_complete = all(
                 (reference_cache_path / name).is_file()
                 for name in (
@@ -154,22 +159,22 @@ def eval_v2a(
             )
             if missing and not video_cache_complete:
                 raise ValueError(
-                    "ImageBind/DeSync requires source-video ref_path for every JSONL record "
-                    f"or a complete reference cache; missing ref_path for {missing[:5]}"
+                    "ImageBind/DeSync requires video_path or source-video ref_path for every "
+                    f"JSONL record, or a complete reference cache; missing video for {missing[:5]}"
                 )
-            audio_references = [
+            audio_video_paths = [
                 key
-                for key, reference_path in reference_records.items()
-                if reference_path.suffix.lower() in AUDIO_EXTENSIONS
+                for key, video_path in video_records.items()
+                if video_path.suffix.lower() in AUDIO_EXTENSIONS
             ]
-            if audio_references and not video_cache_complete:
+            if audio_video_paths and not video_cache_complete:
                 raise ValueError(
-                    "ImageBind/DeSync ref_path must point to source video, not audio; "
-                    f"audio ref_path found for {audio_references[:5]}"
+                    "ImageBind/DeSync video_path, or its ref_path fallback, must point to "
+                    f"source video; audio path found for {audio_video_paths[:5]}"
                 )
 
             overlap_by_key: tp.Dict[str, float] = {}
-            if missing or audio_references:
+            if missing or audio_video_paths:
                 generated_cache_complete = all(
                     (generated_cache_path / name).is_file()
                     for name in (
@@ -194,7 +199,7 @@ def eval_v2a(
 
                 for key, record in records.items():
                     generated_path = tp.cast(Path, record["gen_path"])
-                    video_path = reference_records[key]
+                    video_path = video_records[key]
                     waveform, sample_rate = torchaudio.load(str(generated_path))
                     waveform = waveform.float()
                     if sample_rate != 16000:
@@ -230,7 +235,7 @@ def eval_v2a(
                     duration_by_key=overlap_by_key,
                 )
                 ensure_video_feature_cache(
-                    reference_records,
+                    video_records,
                     output_dir=reference_cache_path,
                     duration_by_key=overlap_by_key,
                 )

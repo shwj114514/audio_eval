@@ -11,7 +11,7 @@ import typing as tp
 from audio_eval.audio import list_audio_files
 
 # TODO eplain keys below
-_FIELDS = {"gen_path", "ref_path", "prompt"}
+_FIELDS = {"gen_path", "ref_path", "video_path", "prompt"}
 
 
 def _safe_name(value: str) -> str:
@@ -69,7 +69,7 @@ def load_manifest(path: str | Path) -> dict[str, dict[str, str | Path | None]]:
         if unknown:
             raise ValueError(
                 f"Unsupported fields on line {line_number} of {manifest_path}: {unknown}. "
-                "Allowed fields are gen_path, ref_path, prompt"
+                "Allowed fields are gen_path, ref_path, video_path, prompt"
             )
 
         gen_value = raw.get("gen_path")
@@ -105,12 +105,27 @@ def load_manifest(path: str | Path) -> dict[str, dict[str, str | Path | None]]:
                     f"Reference file not found on line {line_number}: {ref_path}"
                 )
 
+        video_value = raw.get("video_path")
+        video_path: Path | None = None
+        if video_value is not None:
+            if not isinstance(video_value, str) or not video_value.strip():
+                raise ValueError(f"video_path on line {line_number} must be a path or null")
+            video_path = Path(video_value).expanduser()
+            if not video_path.is_absolute():
+                video_path = manifest_path.parent / video_path
+            video_path = video_path.resolve()
+            if not video_path.is_file():
+                raise FileNotFoundError(
+                    f"Video file not found on line {line_number}: {video_path}"
+                )
+
         prompt = raw.get("prompt")
         if prompt is not None and not isinstance(prompt, str):
             raise ValueError(f"prompt on line {line_number} must be a string or null")
         records[key] = {
             "gen_path": gen_path,
             "ref_path": ref_path,
+            "video_path": video_path,
             "prompt": prompt,
         }
 

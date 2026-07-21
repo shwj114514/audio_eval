@@ -86,7 +86,9 @@ def get_openl3_features(
 
     try:
         import tensorflow as tf
-        tf.config.set_visible_devices([], "GPU")
+        #  CPU：TensorFlow + oneDNN，
+        #  GPU：TensorFlow + CUDA + cuDNN 9.10.2 + XLA
+        # tf.config.set_visible_devices([], "GPU")
         import openl3
         import soxr
     except ImportError as error:

@@ -32,12 +32,13 @@ newer timm.
 ## JSONL input
 
 The canonical input for every task evaluator is a JSONL file: one JSON object
-per line, not one JSON array. Only three fields are accepted:
+per line, not one JSON array. Only four fields are accepted:
 
 | Field | Type | Meaning |
 |---|---|---|
 | `gen_path` | string, required | Generated or reconstructed audio |
-| `ref_path` | string or null, optional | Task-dependent reference audio or source video |
+| `ref_path` | string or null, optional | Task-dependent reference audio or media |
+| `video_path` | string or null, optional | V2A source video; ignored by other tasks |
 | `prompt` | string or null, optional | Text prompt or target transcript |
 
 Paths may be absolute or relative to the JSONL file. Every referenced file
@@ -50,7 +51,7 @@ a metric has no option, for example `--metrics pesq,stoi --metric-options ,`.
 
 The meaning of `ref_path` depends on the task: TTA/TTM use reference audio for
 distribution metrics, TTS uses speaker reference audio, reconstruction/SR use
-paired reference audio, and V2A uses the source video for audio-video metrics.
+paired reference audio, and V2A uses its audio for reference-audio metrics.
 
 ### TTA and TTM
 
@@ -188,12 +189,17 @@ The V2A manifest pairs each generated audio file with its source video:
 {"gen_path":"generated/--U7joUcTCo_000000.flac","ref_path":"reference/--U7joUcTCo_000000.mp4"}
 ```
 
-`ref_path` supplies the source video for ImageBind and DeSync. Its audio track
-is also the default real-audio distribution for FD and KL. `generated_cache/`
-and `reference_cache/` are created beside the JSONL automatically when the
-cache arguments are omitted. If either directory is missing or incomplete,
-the required features are extracted and saved there; complete caches are
-reused on later runs.
+For this backward-compatible form, `ref_path` supplies the source video for
+ImageBind and DeSync, and its audio track supplies the default real-audio
+distribution for FD and KL. If the source video has no audio track, provide
+the GT audio through `ref_path` and the video through `video_path`, as shown in
+[`examples/MMAudio_S_16kHz_VGGSound/v2a_with_silence_video.jsonl`](examples/MMAudio_S_16kHz_VGGSound/v2a_with_silence_video.jsonl).
+When `video_path` is omitted, V2A falls back to `ref_path` for video metrics.
+
+`generated_cache/` and `reference_cache/` are created beside the JSONL
+automatically when the cache arguments are omitted. If either directory is
+missing or incomplete, the required features are extracted and saved there;
+complete caches are reused on later runs.
 
 ```bash
 audio-eval v2a manifests/vggsound.jsonl \
@@ -204,8 +210,8 @@ audio-eval v2a manifests/vggsound.jsonl \
 `--generated-cache` and `--reference-cache` may still specify reusable cache
 directories explicitly. `--reference audiocaps` or another supported audio
 path/cache/preset overrides the FD/KL reference distribution only; ImageBind
-and DeSync continue to use the paired source videos from `ref_path` or the
-video features in `--reference-cache`.
+and DeSync continue to use the paired source videos from `video_path`, its
+`ref_path` fallback, or the video features in `--reference-cache`.
 
 These options run PaSST/PANNs/VGGish FD, PaSST/PANNs KL, PANNs Inception
 Score, ImageBind and Synchformer DeSync.

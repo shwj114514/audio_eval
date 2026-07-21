@@ -21,19 +21,21 @@ paired = [
     "librosa>=0.10",
     "pesq>=0.0.4",
     "pystoi>=0.4",
-    "torch==2.5.1",
+    "torch==2.10.0",
 ]
 distribution = [
     "audiobox-aesthetics==0.0.4",
-    "openl3>=0.4.2",
+    "openl3==0.4.2",
     "panns-inference>=0.1",
     "soxr>=0.3.7",
-    "torch==2.5.1",
+    "tensorflow[and-cuda]==2.20.0",
+    "torch==2.10.0",
+    "torchaudio==2.10.0",
 ]
 passt = [
     "passt @ git+https://github.com/hkchengrex/passt_hear21.git",
     "soxr>=0.3.7",
-    "torch==2.5.1",
+    "torch==2.10.0",
 ]
 speech = [
     "funasr",
@@ -41,13 +43,13 @@ speech = [
     "nemo_toolkit[asr]",
     "openai-whisper",
     "s3prl",
-    "torch==2.5.1",
+    "torch==2.10.0",
     "torchaudio==2.5.1",
     "zhconv",
 ]
 video = [
     "av_bench @ git+https://github.com/hkchengrex/av-benchmark.git",
-    "torch==2.5.1",
+    "torch==2.10.0",
     "torchvision==0.20.1",
 ]
 test = ["pytest>=7.4"]

@@ -87,7 +87,9 @@ https://github.com/Stability-AI/stable-audio-metrics/blob/main/src/passt_kld.py
 
 Stable Audio Open SongDescriber-nosinging KL-PaSST:
 * Reported result in the paper: 0.55
-* Reproduced result: 0.5510393264
+* Reproduced result: 
+    Using the extracted local reference: 0.5527729759
+    Using the officially bundled reference: 0.5529081568
 """
 from __future__ import annotations
 
@@ -195,9 +197,9 @@ def compute_kl(
         Compute paired KL divergence from AudioSet classifier outputs.
         Each generated audio clip
             → split into 10-second windows with a 5-second hop
-            → extract PaSST logits for each window
-            → average the window-level logits
-            → apply softmax to obtain a 527-dimensional probability vector
+            → extract PaSST logits for each window / PANNs sigmoid scores for each window
+            → average the window-level logits / PANNs sigmoid scores across windows 
+            → apply softmax to obtain a 527-dimensional probability vector  / normalize PANNs scores by their class sum
             → compute (KL(\text{gen} \parallel \text{ref})) against the probability vector of the corresponding ground-truth audio (if direction == "generated_to_reference")
         preprocess: mono → resample 32 kHz → -1 dB peak normalize → 10s clip
     """
