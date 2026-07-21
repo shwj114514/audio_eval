@@ -73,10 +73,12 @@ in any one of these ways:
 3. Pass a bundled reference name with `--reference`: `audiocaps`, `musiccaps`,
    `musiccaps_nosinging`, `songdescriber`, or `songdescriber_nosinging`.
 
-`--metric-options` selects the metric algorithm, not the dataset. Use `openl3`
-for the official FD setup and `passt` for the official KL setup. An explicit
-`--reference` takes precedence over JSONL `ref_path`; if `--reference` is not
-given, FD and KL use all JSONL `ref_path` entries.
+`--metric-options` selects the metric algorithm, not the dataset. OpenL3 FD
+requires an explicit model choice: use `openl3_env` for environmental sounds
+or `openl3_music` for music. Use `passt` for the official KL setup. An
+explicit `--reference` takes precedence over JSONL `ref_path`; if
+`--reference` is not given, FD and KL use all JSONL `ref_path` entries.
+The ambiguous legacy FD option `openl3` is not accepted.
 
 When `ref_path` is used with FD or KL, either every record must provide it
 or none may provide it. Generated/reference stems do not have to match in this
@@ -90,12 +92,12 @@ case because each JSONL record defines the association.
 ```bash
 audio-eval tta manifests/audiocaps.jsonl \
   --metrics fd,kl,clap \
-  --metric-options openl3,passt, \
+  --metric-options openl3_env,passt, \
   --reference audiocaps
 
 audio-eval ttm manifests/songdescriber.jsonl \
   --metrics fd,kl,clap \
-  --metric-options openl3,passt, \
+  --metric-options openl3_music,passt, \
   --reference songdescriber
 ```
 
@@ -106,7 +108,7 @@ caches on later runs:
 ```bash
 audio-eval ttm manifests/songdescriber.jsonl \
   --metrics fd,kl,inception_score,clap,audiobox,utmos \
-  --metric-options openl3,passt,panns,,, \
+  --metric-options openl3_music,passt,panns,,, \
   --generated-cache manifests/songdescriber_generated_cache \
   --reference-cache manifests/songdescriber_reference_cache
 ```
@@ -182,17 +184,24 @@ at 24 kHz. `examples/UniFlowAudio_SR_VCTK` contains a complete example.
 
 ### Video-to-audio
 
-The V2A manifest pairs each generated audio file with its source video:
-
+The V2A manifest pairs each generated audio file with its source video. 
 ```jsonl
 {"gen_path":"generated/---g-f_I2yQ_000001.flac","ref_path":"reference/---g-f_I2yQ_000001.mp4"}
 {"gen_path":"generated/--U7joUcTCo_000000.flac","ref_path":"reference/--U7joUcTCo_000000.mp4"}
 ```
 
-For this backward-compatible form, `ref_path` supplies the source video for
-ImageBind and DeSync, and its audio track supplies the default real-audio
-distribution for FD and KL. If the source video has no audio track, provide
-the GT audio through `ref_path` and the video through `video_path`, as shown in
+If the GT reference audio and source video are separate files, use `ref_path`
+for the audio and `video_path` for the video:
+
+```jsonl
+{"gen_path":"generated/---g-f_I2yQ_000001.flac","ref_path":"reference_audio/---g-f_I2yQ_000001.flac","video_path":"silence_video/---g-f_I2yQ_000001.mp4"}
+{"gen_path":"generated/--U7joUcTCo_000000.flac","ref_path":"reference_audio/--U7joUcTCo_000000.flac","video_path":"silence_video/--U7joUcTCo_000000.mp4"}
+```
+
+In the first form, `ref_path` supplies the source video for ImageBind and
+DeSync, and its audio track supplies the default real-audio distribution for
+FD and KL. In the second form, `video_path` supplies the video for ImageBind
+and DeSync, while `ref_path` supplies the GT audio for FD and KL, as shown in
 [`examples/MMAudio_S_16kHz_VGGSound/v2a_with_silence_video.jsonl`](examples/MMAudio_S_16kHz_VGGSound/v2a_with_silence_video.jsonl).
 When `video_path` is omitted, V2A falls back to `ref_path` for video metrics.
 
@@ -270,7 +279,7 @@ result = eval_tts(
 result = eval_tta(
     "manifests/audiocaps.jsonl",
     metrics=["fd", "kl", "clap"],
-    metric_options=["openl3", "passt", ""],
+    metric_options=["openl3_env", "passt", ""],
     reference="audiocaps",
 )
 ```
@@ -307,8 +316,10 @@ a separate public extraction step.
 - `compute_fd` and `compute_kl` accept a reference-audio path, a precomputed
   reference cache path, or a bundled reference name as their second argument.
 - OpenL3 generated and reference embeddings are cached and reused by
-  `compute_fd`. When explicit cache directories are supplied, the `.npz` files
-  are written directly in those directories.
+  `compute_fd`. Cache metadata must match the requested `openl3_env` or
+  `openl3_music` configuration; incompatible caches are rejected. When
+  explicit cache directories are supplied, the `.npz` files are written
+  directly in those directories.
 - `compute_fd`, `compute_kl`, and `compute_inception_score` accept
   `version="passt"` for PaSST caches; FD also accepts `version="openl3"` and
   `version="vggish"`.
@@ -353,7 +364,7 @@ Common metric options are:
 
 | Metric | Options |
 |---|---|
-| FD | `openl3`, `panns`, `passt`, `vggish` |
+| FD | `openl3_env`, `openl3_music`, `panns`, `passt`, `vggish` |
 | KL | `panns`, `passt`, `panns_ref_to_gen`, `passt_ref_to_gen` |
 | Inception Score | `panns`, `passt` |
 | WER | `seedtts_en`, `seedtts_zh`, `seedtts_zh_hard`, `librispeech_test_clean` |

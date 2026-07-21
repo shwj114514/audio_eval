@@ -136,7 +136,7 @@ def eval_generation(
             options["generated_cache_dir"] = generated_cache_path
         if metric in {"fd", "kl"} and reference_cache_path is not None:
             options["reference_cache_dir"] = reference_cache_path
-        if metric == "fd" and option == "openl3":
+        if metric == "fd" and options.get("version") == "openl3":
             metric_reference_for_metric = (
                 explicit_reference if explicit_reference is not None else manifest_reference
             )

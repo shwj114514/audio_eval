@@ -96,6 +96,14 @@ def compute_desync(
     model = model.to(target_device).eval()
 
     if protocol == "sliding_2seg":
+        """
+        Example: audio=[0, 10.7044]s and video=[0, 10.6667]s have 32 complete
+            segments ending at 10.56s. A 14-segment window sliding by 2 segments is:
+            window1 [0.00, 4.80], window2 [0.64, 5.44], window3 [1.28, 6.08], 
+            window4 [1.92, 6.72], window5 [2.56, 7.36], window6 [3.20, 8.00], 
+            window7 [3.84, 8.64], window8 [4.48, 9.28], window9 [5.12, 9.92], 
+            window10 [5.76, 10.56]. DeSync is the mean over all 10 windows.
+        """
         window_segments = 14
         hop_segments = 2
         num_segments = min(reference_features.shape[1], generated_features.shape[1])
@@ -160,7 +168,8 @@ def compute_desync(
                 )
             ],
         }
-
+    # first_last example for the same inputs: evaluate only the first window[0.00, 4.80] and
+    # the last window [5.76, 10.56], then average the two absolute offset predictions.
     first_scores: tp.List[float] = []
     last_scores: tp.List[float] = []
     with torch.inference_mode():

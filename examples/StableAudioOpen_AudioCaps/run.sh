@@ -12,7 +12,7 @@ CMD=(
   python -m audio_eval tta \
     "$EXAMPLE_DIR/tta.jsonl" \
     --metrics fd,kl,inception_score,clap,audiobox,utmos \
-    --metric-options openl3,passt,panns,,, \
+    --metric-options openl3_env,passt,panns,,, \
     --reference audiocaps \
     --results-dir "$EXAMPLE_DIR/results" \
     --name stable_audio_open_audiocaps

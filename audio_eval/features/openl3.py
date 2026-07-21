@@ -15,7 +15,11 @@ from audio_eval.common import AudioCollection
 OPENL3_FEATURE_FILENAME = "openl3.npz"
 
 
-def load_openl3_features(path: str | Path) -> tp.Dict[str, tp.Any]:
+def load_openl3_features(
+    path: str | Path,
+    *,
+    content_type: str | None = None,
+) -> tp.Dict[str, tp.Any]:
     cache_path = Path(path).expanduser()
     if cache_path.is_dir():
         cache_path = cache_path / OPENL3_FEATURE_FILENAME
@@ -37,12 +41,29 @@ def load_openl3_features(path: str | Path) -> tp.Dict[str, tp.Any]:
             if "clip_keys" in loaded.files
             else []
         )
-        return {
+        features = {
             "keys": keys,
             "clip_keys": clip_keys,
             "embeddings": loaded["embeddings"],
             "cache_path": cache_path,
         }
+        if "content_type" in loaded.files:
+            features["content_type"] = str(loaded["content_type"].item())
+
+        # Reusing an OpenL3 cache is only safe when it was extracted with the
+        # same model content_type ("music" or "env") requested by this run.
+        if content_type is not None:
+            if "content_type" not in features:
+                raise ValueError(
+                    f"OpenL3 feature cache {cache_path} is missing content_type"
+                )
+            if features["content_type"] != content_type:
+                raise ValueError(
+                    f"OpenL3 feature cache {cache_path} has "
+                    f"content_type={features['content_type']!r} "
+                    f"(requested {content_type!r})"
+                )
+        return features
 
 
 def get_openl3_features(
@@ -68,7 +89,7 @@ def get_openl3_features(
 
     existing = resolve_feature_cache(audio, OPENL3_FEATURE_FILENAME)
     if existing is not None and not refresh_cache:
-        return load_openl3_features(existing)
+        return load_openl3_features(existing, content_type=content_type)
 
     fingerprint = collection_fingerprint(audio, sample_rate=sample_rate)
     output_path = feature_cache_file(
@@ -82,7 +103,7 @@ def get_openl3_features(
         output_dir=output_dir,
     )
     if output_path.is_file() and not refresh_cache:
-        return load_openl3_features(output_path)
+        return load_openl3_features(output_path, content_type=content_type)
 
     try:
         import tensorflow as tf
@@ -186,4 +207,9 @@ def get_openl3_features(
         "clip_keys": clip_keys,
         "embeddings": embedding_array,
         "cache_path": output_path,
+        "target_sample_rate": target_sample_rate,
+        "channels": channels,
+        "content_type": content_type,
+        "hop_size": hop_size,
+        "batch_size": batch_size,
     }

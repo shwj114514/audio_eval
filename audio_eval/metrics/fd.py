@@ -25,7 +25,9 @@ from audio_eval.features.vggish import get_vggish_features
 _OPENL3_ASSETS = Path(__file__).resolve().parents[1] / "assets" / "openl3_fd"
 
 FD_OPTIONS: tp.Dict[str, tp.Dict[str, object]] = {
-    "openl3": {"version": "openl3"},
+    # upd0721  The ambiguous legacy FD option `openl3` is not accepted.
+    "openl3_env": {"version": "openl3", "openl3_content_type": "env"},
+    "openl3_music": {"version": "openl3", "openl3_content_type": "music"},
     "panns": {"version": "panns"},
     "passt": {"version": "passt"},
     "vggish": {"version": "vggish"},
@@ -50,6 +52,20 @@ def get_fd_options(option: str) -> tp.Dict[str, object]:
     except KeyError as error:
         available = ", ".join(sorted(FD_OPTIONS))
         raise ValueError(f"Unknown FD option {option!r}. Available: {available}") from error
+
+
+def _resolve_openl3_content_type(
+    requested: str | None,
+    reference_content_type: str,
+    *,
+    reference_label: str,
+) -> str:
+    if requested is not None and requested != reference_content_type:
+        raise ValueError(
+            f"Requested OpenL3 content_type={requested!r}, but reference "
+            f"{reference_label} uses content_type={reference_content_type!r}"
+        )
+    return reference_content_type
 
 
 def frechet_distance(
@@ -149,8 +165,8 @@ def compute_fd(
     refresh_cache: bool = False,
     target_sample_rate: int = 44100,
     openl3_channels: int = 2,
-    # Select the OpenL3 music or environmental-sound model; only used with version="openl3".
-    openl3_content_type: str = "music",
+    # Explicit OpenL3 model choice; only used with version="openl3".
+    openl3_content_type: str | None = None,
     openl3_hop_size: float = 0.5,
 ) -> tp.Dict[str, tp.Any]:
     """
@@ -162,6 +178,8 @@ def compute_fd(
 
     if version not in {"openl3", "panns", "passt", "vggish"}:
         raise ValueError("version must be openl3, panns, passt, or vggish")
+    if openl3_content_type not in {None, "env", "music"}:
+        raise ValueError("openl3_content_type must be env or music")
 
     reference_cache: Path | None = None
     if isinstance(reference, (str, Path)):
@@ -184,29 +202,51 @@ def compute_fd(
                     )
                     with np.load(reference_path, allow_pickle=False) as loaded:
                         # load from https://github.com/Stability-AI/stable-audio-metrics/tree/main/load/openl3_fd
-                        # Overrides the user-specified parameters to ensure that the generated and reference features are extracted using the same configuration.
+                        # Adopt the reference extraction configuration after verifying
+                        # that it agrees with the explicitly selected public option.
                         if {"target_sample_rate", "channels", "content_type", "hop_size", "batch_size"} <= set(loaded.files):
+                            reference_content_type = str(loaded["content_type"])
+                            openl3_content_type = _resolve_openl3_content_type(
+                                openl3_content_type,
+                                reference_content_type,
+                                reference_label=str(reference_path),
+                            )
                             target_sample_rate = int(loaded["target_sample_rate"])
                             openl3_channels = int(loaded["channels"])
-                            openl3_content_type = str(loaded["content_type"])
                             openl3_hop_size = float(loaded["hop_size"])
                             batch_size = int(loaded["batch_size"])
                         elif known_reference is not None:
-                            # use the officail default reference configuration if the cache file does not contain the configuration
+                            # Use the official default reference configuration if the cache file does not contain the configuration.
+                            reference_content_type = tp.cast(str, known_reference["content_type"])
+                            openl3_content_type = _resolve_openl3_content_type(
+                                openl3_content_type,
+                                reference_content_type,
+                                reference_label=str(reference_path),
+                            )
                             target_sample_rate = 44100
                             openl3_channels = 2
-                            openl3_content_type = tp.cast(str, known_reference["content_type"])
                             openl3_hop_size = 0.5
                             batch_size = 4
+                        else:
+                            raise ValueError(
+                                f"OpenL3 reference cache {reference_path} is missing "
+                                "extraction configuration metadata and is not a known "
+                                "bundled reference"
+                            )
                 reference = None
             else:
                 reference = reference_path
         elif str(reference) in FD_REFERENCES.get(version, {}):
             reference_options = FD_REFERENCES[version][str(reference)]
             reference_cache = tp.cast(Path, reference_options["path"])
+            reference_content_type = tp.cast(str, reference_options["content_type"])
+            openl3_content_type = _resolve_openl3_content_type(
+                openl3_content_type,
+                reference_content_type,
+                reference_label=str(reference),
+            )
             target_sample_rate = 44100
             openl3_channels = 2
-            openl3_content_type = tp.cast(str, reference_options["content_type"])
             openl3_hop_size = 0.5
             batch_size = 4
             reference = None
@@ -217,6 +257,11 @@ def compute_fd(
             )
 
     if version == "openl3":
+        if openl3_content_type is None:
+            raise ValueError(
+                "OpenL3 FD requires an explicit content type; use metric option "
+                "openl3_music or openl3_env"
+            )
         generated_features = get_openl3_features(
             generated,
             sample_rate=generated_sample_rate,
