@@ -1,21 +1,22 @@
 # audio-eval
 
-`audio-eval` evaluates already generated audio. It does not know which model
-generated the audio or how inference was performed. Task evaluators receive a
-JSONL manifest; metric functions can also be called directly with paths, NumPy
-arrays, PyTorch tensors, or `(audio, sample_rate)` tuples.
+`audio-eval` is a model-agnostic, composable toolkit for evaluating generated
+and reconstructed audio. It provides task-level evaluators for text-to-audio,
+text-to-music, text-to-speech, reconstruction, audio super-resolution, and
+video-to-audio, alongside standalone metric APIs. Task evaluators use JSONL
+manifests; metric functions accept file paths, NumPy arrays, PyTorch tensors,
+or `(audio, sample_rate)` tuples.
 
-## `audio-eval` Benchmark Results
+## Evaluation Results
 
 ### Text-to-Sound Effects 📃 → 🔊
+All results were computed using `audio-eval` on the AudioCaps test set and the Clotho test set.
 
-Best scores are shown in **bold**. ↑ means higher is better; ↓ means lower is
-better.
+Best scores are shown in **bold**. ↑ means higher is better; ↓ means lower is better. `gen→ref` denotes `KL(generated || reference)`.
 
-Compared models: [Sonilo Sound Effects 1.0](https://sonilo.com/),
+Models evaluated: [Sonilo Sound Effects 1.0](https://sonilo.com/),
 [ElevenLabs SFX v2](https://elevenlabs.io/sound-effects), and
 [Mirelo v1.6](https://mirelo.ai/).
-
 #### AudioCaps
 
 <table>
@@ -122,9 +123,6 @@ Compared models: [Sonilo Sound Effects 1.0](https://sonilo.com/),
   </tbody>
 </table>
 
-<sub>
-↑: higher is better. ↓: lower is better.
-</sub>
 
 #### Clotho
 
