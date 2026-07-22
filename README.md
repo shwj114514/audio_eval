@@ -9,14 +9,357 @@ or `(audio, sample_rate)` tuples.
 
 ## Evaluation Results
 
-### Text-to-Sound Effects 📃 → 🔊
-All results were computed using `audio-eval` on the AudioCaps test set and the Clotho test set.
+All results below were computed using `audio-eval`. Best scores are shown in
+**bold**. ↑ means higher is better; ↓ means lower is better. `gen→ref`
+denotes `KL(generated || reference)`.
 
-Best scores are shown in **bold**. ↑ means higher is better; ↓ means lower is better. `gen→ref` denotes `KL(generated || reference)`.
+### Video-to-Audio 🎬 → 🔊
+
+All models were evaluated separately on Movie Gen Audio Bench and CineBench
+(internal eval set).
+
+Models evaluated: [Sonilo Sound Effects 1.0](https://sonilo.com/) and
+[Mirelo v1.6](https://mirelo.ai/).
+
+#### Movie Gen Audio Bench
+
+<table>
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>Variant</th>
+      <th>Better</th>
+      <th>Sonilo Sound Effects 1.0</th>
+      <th>Mirelo v1.6</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2">DeSync</td>
+      <td>Sliding, 2 segments</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>0.6521</strong></td>
+      <td align="right">0.6694</td>
+    </tr>
+    <tr>
+      <td>First–last</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>0.5918</strong></td>
+      <td align="right">0.6844</td>
+    </tr>
+    <tr>
+      <td>IB</td>
+      <td></td>
+      <td align="center">↑</td>
+      <td align="right"><strong>0.3178</strong></td>
+      <td align="right">0.2945</td>
+    </tr>
+    <tr>
+      <td rowspan="2">KL</td>
+      <td>PANNs, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>1.4203</strong></td>
+      <td align="right">1.4802</td>
+    </tr>
+    <tr>
+      <td>PaSST, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>1.7706</strong></td>
+      <td align="right">1.9005</td>
+    </tr>
+    <tr>
+      <td rowspan="2">IS</td>
+      <td>PANNs</td>
+      <td align="center">↑</td>
+      <td align="right">4.8333</td>
+      <td align="right"><strong>5.0461</strong></td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>7.6874</strong></td>
+      <td align="right">7.6660</td>
+    </tr>
+    <tr>
+      <td rowspan="4">Audiobox</td>
+      <td>CE</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>3.7972</strong></td>
+      <td align="right">3.4531</td>
+    </tr>
+    <tr>
+      <td>CU</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>6.1085</strong></td>
+      <td align="right">5.5121</td>
+    </tr>
+    <tr>
+      <td>PC</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>2.8665</strong></td>
+      <td align="right">2.8174</td>
+    </tr>
+    <tr>
+      <td>PQ</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>6.5849</strong></td>
+      <td align="right">6.0517</td>
+    </tr>
+    <tr>
+      <td rowspan="4">FD</td>
+      <td>VGGish</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>3.0817</strong></td>
+      <td align="right">4.6969</td>
+    </tr>
+    <tr>
+      <td>OpenL3</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>82.9343</strong></td>
+      <td align="right">122.3979</td>
+    </tr>
+    <tr>
+      <td>PANNs</td>
+      <td align="center">↓</td>
+      <td align="right">18.0420</td>
+      <td align="right"><strong>17.0103</strong></td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↓</td>
+      <td align="right">210.3894</td>
+      <td align="right"><strong>195.0931</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+#### CineBench (internal eval set)
+
+<table>
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>Variant</th>
+      <th>Better</th>
+      <th>Sonilo Sound Effects 1.0</th>
+      <th>Mirelo v1.6</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="2">DeSync</td>
+      <td>Sliding, 2 segments</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>0.2990</strong></td>
+      <td align="right">0.3416</td>
+    </tr>
+    <tr>
+      <td>First–last</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>0.3040</strong></td>
+      <td align="right">0.5540</td>
+    </tr>
+    <tr>
+      <td>IB</td>
+      <td></td>
+      <td align="center">↑</td>
+      <td align="right"><strong>0.3233</strong></td>
+      <td align="right">0.3119</td>
+    </tr>
+    <tr>
+      <td rowspan="2">KL</td>
+      <td>PANNs, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>0.7626</strong></td>
+      <td align="right">0.9747</td>
+    </tr>
+    <tr>
+      <td>PaSST, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>0.8125</strong></td>
+      <td align="right">1.2079</td>
+    </tr>
+    <tr>
+      <td rowspan="2">IS</td>
+      <td>PANNs</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>2.6009</strong></td>
+      <td align="right">2.5854</td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>3.0006</strong></td>
+      <td align="right">2.9387</td>
+    </tr>
+    <tr>
+      <td rowspan="4">Audiobox</td>
+      <td>CE</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>3.8704</strong></td>
+      <td align="right">3.6893</td>
+    </tr>
+    <tr>
+      <td>CU</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>6.6173</strong></td>
+      <td align="right">6.5818</td>
+    </tr>
+    <tr>
+      <td>PC</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>4.3200</strong></td>
+      <td align="right">3.6931</td>
+    </tr>
+    <tr>
+      <td>PQ</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>7.0897</strong></td>
+      <td align="right">6.8120</td>
+    </tr>
+    <tr>
+      <td rowspan="4">FD</td>
+      <td>VGGish</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>2.2366</strong></td>
+      <td align="right">4.0993</td>
+    </tr>
+    <tr>
+      <td>OpenL3</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>130.3204</strong></td>
+      <td align="right">141.8064</td>
+    </tr>
+    <tr>
+      <td>PANNs</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>26.6477</strong></td>
+      <td align="right">36.4970</td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>396.0998</strong></td>
+      <td align="right">441.4231</td>
+    </tr>
+  </tbody>
+</table>
+
+### Text-to-Audio 📃 → 🔊
+
+All models were evaluated separately on the Clotho test set and the AudioCaps
+test set.
 
 Models evaluated: [Sonilo Sound Effects 1.0](https://sonilo.com/),
 [ElevenLabs SFX v2](https://elevenlabs.io/sound-effects), and
 [Mirelo v1.6](https://mirelo.ai/).
+
+#### Clotho
+
+<table>
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>Variant</th>
+      <th>Better</th>
+      <th>Sonilo Sound Effects 1.0</th>
+      <th>ElevenLabs SFX v2</th>
+      <th>Mirelo v1.6</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CLAP</td>
+      <td></td>
+      <td align="center">↑</td>
+      <td align="right"><strong>0.4377</strong></td>
+      <td align="right">0.3967</td>
+      <td align="right">0.3223</td>
+    </tr>
+    <tr>
+      <td rowspan="2">KL</td>
+      <td>PANNs, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>1.4424</strong></td>
+      <td align="right">1.4950</td>
+      <td align="right">1.7523</td>
+    </tr>
+    <tr>
+      <td>PaSST, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>1.5098</strong></td>
+      <td align="right">1.6230</td>
+      <td align="right">1.7790</td>
+    </tr>
+    <tr>
+      <td rowspan="2">IS</td>
+      <td>PANNs</td>
+      <td align="center">↑</td>
+      <td align="right">6.9713</td>
+      <td align="right"><strong>7.3307</strong></td>
+      <td align="right">5.7209</td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>10.3071</strong></td>
+      <td align="right">9.0706</td>
+      <td align="right">7.1142</td>
+    </tr>
+    <tr>
+      <td rowspan="4">Audiobox</td>
+      <td>CE</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>3.7513</strong></td>
+      <td align="right">3.7512</td>
+      <td align="right">3.5656</td>
+    </tr>
+    <tr>
+      <td>CU</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>6.0252</strong></td>
+      <td align="right">6.0047</td>
+      <td align="right">5.5728</td>
+    </tr>
+    <tr>
+      <td>PC</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>3.0847</strong></td>
+      <td align="right">2.8204</td>
+      <td align="right">2.9840</td>
+    </tr>
+    <tr>
+      <td>PQ</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>6.4833</strong></td>
+      <td align="right">6.4831</td>
+      <td align="right">6.0801</td>
+    </tr>
+    <tr>
+      <td rowspan="3">FD</td>
+      <td>VGGish</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>2.2883</strong></td>
+      <td align="right">2.5429</td>
+      <td align="right">5.4576</td>
+    </tr>
+    <tr>
+      <td>OpenL3</td>
+      <td align="center">↓</td>
+      <td align="right">79.4856</td>
+      <td align="right"><strong>53.2710</strong></td>
+      <td align="right">86.8386</td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↓</td>
+      <td align="right">185.1988</td>
+      <td align="right"><strong>117.8920</strong></td>
+      <td align="right">150.5898</td>
+    </tr>
+  </tbody>
+</table>
+
 #### AudioCaps
 
 <table>
@@ -38,28 +381,6 @@ Models evaluated: [Sonilo Sound Effects 1.0](https://sonilo.com/),
       <td align="right"><strong>0.5365</strong></td>
       <td align="right">0.5315</td>
       <td align="right">0.2756</td>
-    </tr>
-    <tr>
-      <td rowspan="3">FD</td>
-      <td>VGGish</td>
-      <td align="center">↓</td>
-      <td align="right"><strong>1.4787</strong></td>
-      <td align="right">1.6304</td>
-      <td align="right">3.2801</td>
-    </tr>
-    <tr>
-      <td>OpenL3</td>
-      <td align="center">↓</td>
-      <td align="right">174.5691</td>
-      <td align="right"><strong>147.5690</strong></td>
-      <td align="right">243.9284</td>
-    </tr>
-    <tr>
-      <td>PaSST</td>
-      <td align="center">↓</td>
-      <td align="right">159.8685</td>
-      <td align="right"><strong>128.7889</strong></td>
-      <td align="right">218.4857</td>
     </tr>
     <tr>
       <td rowspan="2">KL</td>
@@ -120,112 +441,27 @@ Models evaluated: [Sonilo Sound Effects 1.0](https://sonilo.com/),
       <td align="right">6.0408</td>
       <td align="right"><strong>6.1982</strong></td>
     </tr>
-  </tbody>
-</table>
-
-
-#### Clotho
-
-<table>
-  <thead>
-    <tr>
-      <th>Metric</th>
-      <th>Variant</th>
-      <th>Better</th>
-      <th>Sonilo Sound Effects 1.0</th>
-      <th>ElevenLabs SFX v2</th>
-      <th>Mirelo v1.6</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>CLAP</td>
-      <td></td>
-      <td align="center">↑</td>
-      <td align="right"><strong>0.4377</strong></td>
-      <td align="right">0.3967</td>
-      <td align="right">0.3223</td>
-    </tr>
     <tr>
       <td rowspan="3">FD</td>
       <td>VGGish</td>
       <td align="center">↓</td>
-      <td align="right"><strong>2.2883</strong></td>
-      <td align="right">2.5429</td>
-      <td align="right">5.4576</td>
+      <td align="right"><strong>1.4787</strong></td>
+      <td align="right">1.6304</td>
+      <td align="right">3.2801</td>
     </tr>
     <tr>
       <td>OpenL3</td>
       <td align="center">↓</td>
-      <td align="right">79.4856</td>
-      <td align="right"><strong>53.2710</strong></td>
-      <td align="right">86.8386</td>
+      <td align="right">174.5691</td>
+      <td align="right"><strong>147.5690</strong></td>
+      <td align="right">243.9284</td>
     </tr>
     <tr>
       <td>PaSST</td>
       <td align="center">↓</td>
-      <td align="right">185.1988</td>
-      <td align="right"><strong>117.8920</strong></td>
-      <td align="right">150.5898</td>
-    </tr>
-    <tr>
-      <td rowspan="2">KL</td>
-      <td>PANNs, gen→ref</td>
-      <td align="center">↓</td>
-      <td align="right"><strong>1.4424</strong></td>
-      <td align="right">1.4950</td>
-      <td align="right">1.7523</td>
-    </tr>
-    <tr>
-      <td>PaSST, gen→ref</td>
-      <td align="center">↓</td>
-      <td align="right"><strong>1.5098</strong></td>
-      <td align="right">1.6230</td>
-      <td align="right">1.7790</td>
-    </tr>
-    <tr>
-      <td rowspan="2">IS</td>
-      <td>PANNs</td>
-      <td align="center">↑</td>
-      <td align="right">6.9713</td>
-      <td align="right"><strong>7.3307</strong></td>
-      <td align="right">5.7209</td>
-    </tr>
-    <tr>
-      <td>PaSST</td>
-      <td align="center">↑</td>
-      <td align="right"><strong>10.3071</strong></td>
-      <td align="right">9.0706</td>
-      <td align="right">7.1142</td>
-    </tr>
-    <tr>
-      <td rowspan="4">Audiobox</td>
-      <td>CE</td>
-      <td align="center">↑</td>
-      <td align="right"><strong>3.7513</strong></td>
-      <td align="right">3.7512</td>
-      <td align="right">3.5656</td>
-    </tr>
-    <tr>
-      <td>CU</td>
-      <td align="center">↑</td>
-      <td align="right"><strong>6.0252</strong></td>
-      <td align="right">6.0047</td>
-      <td align="right">5.5728</td>
-    </tr>
-    <tr>
-      <td>PC</td>
-      <td align="center">↑</td>
-      <td align="right"><strong>3.0847</strong></td>
-      <td align="right">2.8204</td>
-      <td align="right">2.9840</td>
-    </tr>
-    <tr>
-      <td>PQ</td>
-      <td align="center">↑</td>
-      <td align="right"><strong>6.4833</strong></td>
-      <td align="right">6.4831</td>
-      <td align="right">6.0801</td>
+      <td align="right">159.8685</td>
+      <td align="right"><strong>128.7889</strong></td>
+      <td align="right">218.4857</td>
     </tr>
   </tbody>
 </table>
