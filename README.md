@@ -466,6 +466,112 @@ Models evaluated: [Sonilo Sound Effects 1.0](https://sonilo.com/),
   </tbody>
 </table>
 
+### Text-to-Music 📃 → 🎵
+
+Both models were evaluated on MusicCaps.
+
+Models evaluated: [Sonilo Music v1.1](https://sonilo.com/) and
+[Suno v5.5](https://suno.com/).
+
+#### MusicCaps
+
+<table>
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>Variant</th>
+      <th>Better</th>
+      <th>Sonilo Music v1.1</th>
+      <th>Suno v5.5</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CLAP</td>
+      <td></td>
+      <td align="center">↑</td>
+      <td align="right"><strong>0.2850</strong></td>
+      <td align="right">0.2641</td>
+    </tr>
+    <tr>
+      <td rowspan="2">KL</td>
+      <td>PANNs, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right">0.8160</td>
+      <td align="right"><strong>0.8146</strong></td>
+    </tr>
+    <tr>
+      <td>PaSST, gen→ref</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>0.5435</strong></td>
+      <td align="right">0.7973</td>
+    </tr>
+    <tr>
+      <td rowspan="2">IS</td>
+      <td>PANNs</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>1.9934</strong></td>
+      <td align="right">1.9352</td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↑</td>
+      <td align="right">1.2217</td>
+      <td align="right"><strong>1.3048</strong></td>
+    </tr>
+    <tr>
+      <td rowspan="4">Audiobox</td>
+      <td>CE</td>
+      <td align="center">↑</td>
+      <td align="right"><strong>7.4207</strong></td>
+      <td align="right">7.3386</td>
+    </tr>
+    <tr>
+      <td>CU</td>
+      <td align="center">↑</td>
+      <td align="right">7.8808</td>
+      <td align="right"><strong>7.9931</strong></td>
+    </tr>
+    <tr>
+      <td>PC</td>
+      <td align="center">↑</td>
+      <td align="right">5.8673</td>
+      <td align="right"><strong>6.0027</strong></td>
+    </tr>
+    <tr>
+      <td>PQ</td>
+      <td align="center">↑</td>
+      <td align="right">7.9954</td>
+      <td align="right"><strong>8.1066</strong></td>
+    </tr>
+    <tr>
+      <td rowspan="4">FD</td>
+      <td>VGGish</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>6.7621</strong></td>
+      <td align="right">6.8786</td>
+    </tr>
+    <tr>
+      <td>OpenL3</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>135.8680</strong></td>
+      <td align="right">283.6519</td>
+    </tr>
+    <tr>
+      <td>PANNs</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>52.3723</strong></td>
+      <td align="right">60.8401</td>
+    </tr>
+    <tr>
+      <td>PaSST</td>
+      <td align="center">↓</td>
+      <td align="right"><strong>453.7663</strong></td>
+      <td align="right">616.2666</td>
+    </tr>
+  </tbody>
+</table>
+
 ## Installation
 
 Python 3.10 is recommended. The upstream OpenL3 package still uses the removed
