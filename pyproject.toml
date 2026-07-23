@@ -68,7 +68,7 @@ where = ["."]
 include = ["audio_eval*"]
 
 [tool.setuptools.package-data]
-audio_eval = ["assets/openl3_fd/*.md", "assets/openl3_fd/*.npz", "assets/passt_kl/*.md", "assets/passt_kl/*.pkl", "presets/*.yaml"]
+audio_eval = ["assets/openl3_fd/*.md", "assets/openl3_fd/*.npz", "assets/passt_kl/*.md", "assets/passt_kl/*.pkl", "assets/prompts/*.csv", "assets/prompts/*.md", "presets/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -497,27 +497,27 @@ Models evaluated: [Sonilo Music v1.1](https://sonilo.com/) and
       <td rowspan="2">KL</td>
       <td>PANNs, gen→ref</td>
       <td align="center">↓</td>
-      <td align="right">0.8160</td>
-      <td align="right"><strong>0.8146</strong></td>
+      <td align="right"><strong>1.0121</strong></td>
+      <td align="right">1.1851</td>
     </tr>
     <tr>
       <td>PaSST, gen→ref</td>
       <td align="center">↓</td>
-      <td align="right"><strong>0.5435</strong></td>
-      <td align="right">0.7973</td>
+      <td align="right"><strong>0.5283</strong></td>
+      <td align="right">0.8087</td>
     </tr>
     <tr>
       <td rowspan="2">IS</td>
       <td>PANNs</td>
       <td align="center">↑</td>
-      <td align="right"><strong>1.9934</strong></td>
-      <td align="right">1.9352</td>
+      <td align="right"><strong>2.1743</strong></td>
+      <td align="right">2.1707</td>
     </tr>
     <tr>
       <td>PaSST</td>
       <td align="center">↑</td>
-      <td align="right">1.2217</td>
-      <td align="right"><strong>1.3048</strong></td>
+      <td align="right"><strong>1.6562</strong></td>
+      <td align="right">1.6442</td>
     </tr>
     <tr>
       <td rowspan="4">Audiobox</td>
@@ -548,8 +548,8 @@ Models evaluated: [Sonilo Music v1.1](https://sonilo.com/) and
       <td rowspan="4">FD</td>
       <td>VGGish</td>
       <td align="center">↓</td>
-      <td align="right"><strong>6.7621</strong></td>
-      <td align="right">6.8786</td>
+      <td align="right"><strong>6.6409</strong></td>
+      <td align="right">6.8095</td>
     </tr>
     <tr>
       <td>OpenL3</td>
@@ -560,14 +560,14 @@ Models evaluated: [Sonilo Music v1.1](https://sonilo.com/) and
     <tr>
       <td>PANNs</td>
       <td align="center">↓</td>
-      <td align="right"><strong>52.3723</strong></td>
-      <td align="right">60.8401</td>
+      <td align="right"><strong>30.7937</strong></td>
+      <td align="right">38.1933</td>
     </tr>
     <tr>
       <td>PaSST</td>
       <td align="center">↓</td>
-      <td align="right"><strong>453.7663</strong></td>
-      <td align="right">616.2666</td>
+      <td align="right"><strong>353.2027</strong></td>
+      <td align="right">552.6211</td>
     </tr>
   </tbody>
 </table>
