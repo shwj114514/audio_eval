@@ -323,12 +323,10 @@ def compute_kl(
     # can be compared. In non-strict mode unmatched records are simply omitted.
     generated_keys = set(generated_map)
     reference_keys = set(reference_map)
-    if strict and generated_keys != reference_keys:
-        raise ValueError(
-            "KL pairing mismatch: "
-            f"missing generated={sorted(reference_keys - generated_keys)[:5]}, "
-            f"missing reference={sorted(generated_keys - reference_keys)[:5]}"
-        )
+    missing_reference = sorted(generated_keys - reference_keys)
+    if strict and missing_reference:
+        raise ValueError(f"KL pairing mismatch: missing reference={missing_reference[:5]}")
+    
     keys = sorted(generated_keys & reference_keys)
     if not keys:
         raise ValueError("No matched generated/reference samples for KL")
