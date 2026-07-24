@@ -107,9 +107,10 @@ def get_openl3_features(
 
     try:
         import tensorflow as tf
-        #  CPU：TensorFlow + oneDNN，
-        #  GPU：TensorFlow + CUDA + cuDNN 9.10.2 + XLA
-        # tf.config.set_visible_devices([], "GPU")
+        # Grow TensorFlow memory on demand so later PyTorch metrics can share the GPU.
+        for device in tf.config.list_physical_devices("GPU"):
+            if not tf.config.experimental.get_memory_growth(device):
+                tf.config.experimental.set_memory_growth(device, True)
         import openl3
         import soxr
     except ImportError as error:

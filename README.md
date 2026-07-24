@@ -577,23 +577,23 @@ Models evaluated: [Sonilo Music v1.1](https://sonilo.com/) and
 Python 3.10 is recommended. The upstream OpenL3 package still uses the removed
 `imp` module and therefore cannot be installed on Python 3.12.
 
+Install the full evaluation environment:
+
 ```bash
 conda create -n eval python=3.10 pip
 conda activate eval
-# Install the complete environment used by the examples.
 pip install -e '.[paired,distribution,passt,speech,video]'
 ```
 
-For a smaller installation, install the base package first and add only the
-extra for the task you need, such as `pip install -e '.[paired]'` for PESQ,
-STOI, and reconstruction metrics or `pip install -e '.[distribution]'` for
-FD, KL, and Inception Score.
+For a smaller environment, install only the extras you need, for example:
 
-Heavy metric dependencies are optional, so installing PESQ does not require
-NeMo or CLAP. Model checkpoints are downloaded by their upstream packages when
-needed. PaSST is a separate extra because upstream `hear21passt` pins
-`timm==0.4.12`; use a dedicated environment if another project requires a
-newer timm.
+```bash
+pip install -e '.[paired]'
+```
+
+Dependencies are grouped by metric. The complete environment uses PyTorch 2.7.1
+and TensorFlow 2.20 with a compatible CUDA 12.6/cuDNN 9.5 stack. Some metrics
+download and cache model weights on first use.
 
 ## JSONL input
 

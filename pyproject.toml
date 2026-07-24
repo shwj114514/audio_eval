@@ -17,48 +17,51 @@ maintainers = [
     { name = "Jiahe Lei" },
 ]
 dependencies = [
-    "numpy>=1.23",
-    "scipy>=1.9",
-    "soundfile>=0.12",
+    "numpy==2.2.6",
+    "scipy==1.15.3",
+    "soundfile==0.14.0",
 ]
 
 [project.optional-dependencies]
 paired = [
-    "librosa>=0.10",
-    "pesq>=0.0.4",
-    "pystoi>=0.4",
-    "torch==2.10.0",
+    "librosa==0.11.0",
+    "pesq==0.0.4",
+    "pystoi==0.4.1",
+    "torch==2.7.1",
 ]
 distribution = [
     "audiobox-aesthetics==0.0.4",
     "openl3==0.4.2",
-    "panns-inference>=0.1",
-    "soxr>=0.3.7",
+    "panns-inference==0.1.1",
+    "soxr==1.1.0",
     "tensorflow[and-cuda]==2.20.0",
-    "torch==2.10.0",
-    "torchaudio==2.10.0",
+    "torch==2.7.1",
+    "torchaudio==2.7.1",
 ]
 passt = [
     "passt @ git+https://github.com/hkchengrex/passt_hear21.git",
-    "soxr>=0.3.7",
-    "torch==2.10.0",
+    "soxr==1.1.0",
+    "torch==2.7.1",
+    "torchaudio==2.7.1",
 ]
 speech = [
-    "funasr",
-    "jiwer>=3.0",
-    "nemo_toolkit[asr]",
-    "openai-whisper",
-    "s3prl",
-    "torch==2.10.0",
-    "torchaudio==2.5.1",
-    "zhconv",
+    "funasr==1.3.14",
+    "jiwer==3.1.0",
+    "nemo_toolkit[asr]==2.6.1",
+    "openai-whisper==20250625",
+    "s3prl==0.4.18",
+    "torch==2.7.1",
+    "torchaudio==2.7.1",
+    "transformers==4.53.3",
+    "zhconv==1.4.3",
 ]
 video = [
-    "av_bench @ git+https://github.com/hkchengrex/av-benchmark.git",
-    "torch==2.10.0",
-    "torchvision==0.20.1",
+    "av_bench @ git+https://github.com/hkchengrex/av-benchmark.git@f351b9a6fc6abde746d5f8e1d4c47c883319cb41",
+    "torch==2.7.1",
+    "torchaudio==2.7.1",
+    "torchvision==0.22.1",
 ]
-test = ["pytest>=7.4"]
+test = ["pytest==9.1.1"]
 
 [project.scripts]
 audio-eval = "audio_eval.cli:main"
